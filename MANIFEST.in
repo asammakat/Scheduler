@@ -1,0 +1,4 @@
+include schedulerApp/schema.sql
+graft schedulerApp/static
+graft schedulerApp/templates
+global exclude *.pyc
