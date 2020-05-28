@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Welcome to Scheduler!{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+    <h1>IT IS CONTENT IT IS WHAT YOU CRAVE</h1>
+    {% if g.member %}
+        <h1>Welcome human!</h1>
+        <a class="action" href="{{ url_for('auth.register_org') }}">Register a new organization</a>
+        <a class="action" href="{{ url_for('auth.add_to_roster') }}">Join an organization</a>
+        <h1>Your Organizations: </h1>
+        {% for org in orgs %}
+          <article class="post">
+            <header>
+              <div>
+                <h1>{{ org[0] }}</h1>
+              </div>
+            </header>
+          </article>
+        {% endfor %}
+    {% endif %}
+{% endblock %}
+
+
