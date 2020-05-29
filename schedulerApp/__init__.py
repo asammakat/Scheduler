@@ -34,4 +34,7 @@ def create_app(test_config=None):
     app.register_blueprint(member.bp)
     app.add_url_rule('/', endpoint='index')
 
+    from . import organization
+    app.register_blueprint(organization.bp)
+
     return app    

@@ -15,7 +15,7 @@
           <article class="post">
             <header>
               <div>
-                <h1>{{ org[0] }}</h1>
+                <a class="action" href="{{ url_for('organization.org_page', org_id=org[1]) }}">{{ org[0] }}</a>
               </div>
             </header>
           </article>

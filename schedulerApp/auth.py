@@ -50,7 +50,7 @@ def register():
 @bp.route('/register_org', methods=('GET', 'POST'))
 @login_required
 def register_org():
-    ''' Insert a new organization into the database.  '''
+    ''' Insert a new organization into the database. '''
     if request.method == 'POST':
         org_name = request.form['org_name']
         password = request.form['password']
@@ -123,6 +123,7 @@ def login():
 @bp.route('/add_to_roster', methods=('GET', 'POST'))
 @login_required
 def add_to_roster():
+    print("Hi from add_to_roster()")
     if request.method == 'POST':
         org_name = request.form['org_name']
         password = request.form['password']
@@ -146,7 +147,7 @@ def add_to_roster():
             'SELECT * FROM roster WHERE org_id = ?',
             (org_id,)
         ).fetchone() is not None:
-            error = 'You are already in the organization'
+            error = 'You are already in the organization.'
 
         if error is None:
             db.execute(

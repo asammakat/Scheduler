@@ -4,8 +4,10 @@
   <h1>Scheduler</h1>
   <ul>
     {% if g.member %}
-      <li><span>{{ g.member['username'] }}</span>
+      <li><span>Hello {{ g.member['username'] }}!</span>
       <li><a href="{{ url_for('auth.logout') }}">Log Out</a>
+      <li><a href="{{ url_for('member.index') }}">Home</a>
+
     {% else %}
       <li><a href="{{ url_for('auth.register') }}">Register</a>
       <li><a href="{{ url_for('auth.login') }}">Log In</a>
