@@ -123,7 +123,6 @@ def login():
 @bp.route('/add_to_roster', methods=('GET', 'POST'))
 @login_required
 def add_to_roster():
-    print("Hi from add_to_roster()")
     if request.method == 'POST':
         org_name = request.form['org_name']
         password = request.form['password']

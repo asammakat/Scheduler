@@ -5,5 +5,26 @@
 {% endblock %}
 
 {% block content %}
-  <h1>Welcome</h1>
+  <h1>Create an availability request:</h1>
+  <form method="post">
+    <label for="tz">Timezone</label>
+    <select name= "tz">
+      {% for timezone in common_timezones %}
+        <option value= "{{ timezone }}" required>{{ timezone }}</option>"
+      {% endfor %}
+    </select>
+    <label for="avail_request_name">Name</label>
+    <input name="avail_request_name" id="avail_request_name">
+    <br>
+    <label for="start_date">Start Date (mm/dd/yyyy)</label>
+    <input name="start_date" id="start_date" required>
+    <label for="start_time">Start Time (hh:mm[a/p])</label>
+    <input name="start_time" id="start_time" required>   
+    <br> 
+    <label for="end_date">End Date(mm/dd/yyyy)</label>
+    <input name="end_date" id="end_date" required>    
+    <label for="end_time">End Time (hh:mm[a/p])</label>
+    <input name="end_time" id="end_time" required>
+    <input type="submit" value="Create">
+  </form>  
 {% endblock %}

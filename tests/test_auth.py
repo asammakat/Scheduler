@@ -38,7 +38,7 @@ def test_register_org(client, app, auth):
 
     with app.app_context():
         assert get_db().execute(
-            "select * from organization where org_name = 'a'",
+            "SELECT * FROM organization WHERE org_name = 'a'",
         ).fetchone() is not None
 
 

@@ -52,7 +52,27 @@ class AuthActions(object):
             'auth/add_to_roster',
             data={'org_name': org_name, 'password': password}
         )
-
+    
+    def make_avail_request(
+        self, 
+        avail_request_name='testAR', 
+        start_date='1/1/2021', 
+        start_time='1:30a', 
+        end_date='1/1/2021', 
+        end_time='2:00p', 
+        tz='UTC'
+    ):
+        return self._client.post(
+        '/1/org_page',
+        data={
+            'avail_request_name': avail_request_name,
+            'start_date': start_date, 
+            'start_time': start_time,
+            'end_date': end_date, 
+            'end_time': end_time, 
+            'tz': tz
+        }
+    )
     def logout(self):
         return self._client.get('/auth/logout')
 
