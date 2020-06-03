@@ -10,6 +10,13 @@
         <h1>Welcome human!</h1>
         <a class="action" href="{{ url_for('auth.register_org') }}">Register a new organization</a>
         <a class="action" href="{{ url_for('auth.add_to_roster') }}">Join an organization</a>
+        <h1>Your Availability Requests: </h1>
+        {% for avail_request in avail_requests %}
+          <a class="action" href="{{ url_for('organization.avail_request', avail_request_id=avail_request[0]) }}">
+              {{ avail_request[1] }}
+          </a>
+          with {{ avail_request[2] }}
+        {% endfor %}
         <h1>Your Organizations: </h1>
         {% for org in orgs %}
           <article class="post">

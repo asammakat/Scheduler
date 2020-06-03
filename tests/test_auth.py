@@ -57,7 +57,7 @@ def test_register_org_validate_input(client, username, password, message, auth):
 
 def test_login(client, auth):
     assert client.get('/auth/login').status_code == 200
-    response = auth.login()
+    response = client.post('/auth/login', data = {'username': 'test', 'password': 'test'})
     assert response.headers['Location'] == 'http://localhost/'
 
     with client:
@@ -70,14 +70,15 @@ def test_login(client, auth):
     ('a', 'test', b'Incorrect username.'),
     ('test', 'a', b'Incorrect password.'),
 ))
-def test_login_validate_input(auth, username, password, message):
-    response = auth.login(username, password)
+def test_login_validate_input(client, username, password, message):
+    response = client.post('/auth/login', data={'username': username, 'password': password})
+
     assert message in response.data
 
 def test_add_to_roster(client, app, auth):
     auth.login()
+    assert client.get('/auth/add_to_roster').status_code == 200
     response = auth.add_to_roster('testOrg1', 'test')
-    print(response.headers)
     assert response.headers['Location'] == 'http://localhost/' 
     
     with app.app_context():
@@ -102,7 +103,6 @@ def test_add_to_roster_validate_input(auth, org_name, password, message):
 def test_login_required(client, path):
     response = client.post(path)
     assert response.headers['Location'] == 'http://localhost/auth/login'
-
 
 def test_logout(client, auth):
     auth.login()

@@ -7,6 +7,11 @@ def test_org_page(auth, client, app):
     auth.login()
     assert client.get('/1/org_page').status_code == 200
 
+    response = client.get(
+        '/99/org_page'
+    )  
+    assert response.headers['Location'] == 'http://localhost/'     
+
     auth.make_avail_request()
 
     with app.app_context():
@@ -26,10 +31,51 @@ def test_org_page_validate_input(avail_request_name, start_date, start_time, end
     auth.login()
     response = auth.make_avail_request(
         avail_request_name=avail_request_name,
-        start_date=start_date, 
-        start_time=start_time, 
-        end_date=end_date, 
-        end_time=end_time, 
+        start_date=start_date,
+        start_time=start_time,
+        end_date=end_date,
+        end_time=end_time,
         tz=tz
+    )
+    assert message in response.data
+
+def test_avail_request(auth, client, app):
+    auth.login()
+    auth.make_avail_request()
+    assert client.get('/1/avail_request').status_code == 200
+
+    response = client.get(
+        '/99/avail_request'
+    )  
+    assert response.headers['Location'] == 'http://localhost/'
+
+    auth.add_avail_slot()
+
+    with app.app_context():
+        db = get_db()
+        assert db.execute(
+            "SELECT * FROM availability_slot WHERE member_id = 1", 
+        ).fetchone() is not None  
+
+        assert db.execute(
+            "SELECT * FROM member_request WHERE member_id = 1 AND answered = 1",
+        ).fetchone() is not None
+
+
+
+@pytest.mark.parametrize(('start_date', 'start_time', 'end_date', 'end_time', 'message'),(
+    ('', '1:30a', '1/1/2030', '2:00p', b"There was a problem with your start date input"),
+    ('1/1/2030', '', '1/1/2030', '2:00p', b"There was a problem with your start time input"),
+    ('1/1/2030', '1:30a', '', '2:00p', b"There was a problem with your end date input"),
+    ('1/1/2030', '1:30a', '1/1/2030', '', b"There was a problem with your end time input")
+))
+def test_avail_request_validate_input(start_date, start_time, end_date, end_time, message, auth):
+    auth.login()
+    auth.make_avail_request()
+    response = auth.add_avail_slot(
+        start_date=start_date,
+        start_time=start_time,
+        end_date=end_date,
+        end_time=end_time,
     )
     assert message in response.data

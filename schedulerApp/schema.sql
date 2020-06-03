@@ -21,8 +21,8 @@ CREATE TABLE member(
 CREATE TABLE availability_request(
     avail_request_id INTEGER PRIMARY KEY AUTOINCREMENT,
     avail_request_name TEXT NOT NULL,
-    start_request DATETIME NOT NULL,
-    end_request DATETIME NOT NULL,
+    start_request TIMESTAMP NOT NULL,
+    end_request TIMESTAMP NOT NULL,
     timezone TEXT NOT NULL,
     org_id INTEGER NOT NULL,
     completed BIT DEFAULT FALSE,
@@ -31,9 +31,8 @@ CREATE TABLE availability_request(
 
 CREATE TABLE availability_slot(
     avail_slot_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    avail_slot_name TEXT NOT NULL,
-    start_slot DATETIME NOT NULL,
-    end_slot DATETIME NOT NULL,
+    start_slot TIMESTAMP NOT NULL,
+    end_slot TIMESTAMP NOT NULL,
     avail_request_id INTEGER NOT NULL,
     member_id INTEGER NOT NULL, 
     FOREIGN KEY (avail_request_id) REFERENCES availability_request (avail_request_id),
@@ -43,8 +42,8 @@ CREATE TABLE availability_slot(
 CREATE TABLE booked_date(
     booked_date_id INTEGER PRIMARY KEY AUTOINCREMENT,
     booked_date_name TEXT NOT NULL,
-    start_time DATETIME NOT NULL,
-    end_time DATETIME NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP NOT NULL,
     timezone TEXT NOT NULL,
     org_id INTEGER NOT NULL,
     FOREIGN KEY (org_id) REFERENCES organization (org_id)
@@ -66,4 +65,3 @@ CREATE TABLE roster(
     FOREIGN KEY (member_id) REFERENCES member (member_id),
     PRIMARY KEY (org_id, member_id)
 );
-

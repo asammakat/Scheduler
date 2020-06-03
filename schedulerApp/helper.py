@@ -1,4 +1,5 @@
 import re
+import datetime
 
 def return_date_values(date):
     date = date.split('/')
@@ -51,3 +52,17 @@ def validate_date(date):
         return True
     else:
         return False   
+    
+def return_datetime(date_string, time_string):
+
+            #dates will be returned as a list [m,d,Y]
+            #times will be returned as a list [h,m]
+            date = return_date_values(date_string)
+            time = return_time_values(time_string) 
+
+            result = datetime.datetime(
+                date[2], date[0], date[1],
+                time[0], time[1]
+            )
+
+            return result

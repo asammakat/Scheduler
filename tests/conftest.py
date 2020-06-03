@@ -63,16 +63,34 @@ class AuthActions(object):
         tz='UTC'
     ):
         return self._client.post(
-        '/1/org_page',
-        data={
-            'avail_request_name': avail_request_name,
-            'start_date': start_date, 
-            'start_time': start_time,
-            'end_date': end_date, 
-            'end_time': end_time, 
-            'tz': tz
-        }
+            '/1/org_page',
+            data={
+                'avail_request_name': avail_request_name,
+                'start_date': start_date, 
+                'start_time': start_time,
+                'end_date': end_date, 
+                'end_time': end_time, 
+                'tz': tz
+            }
     )
+
+    def add_avail_slot(
+        self,        
+        start_date='1/1/2021', 
+        start_time='10:00a', 
+        end_date='1/1/2021', 
+        end_time='1:00p' 
+    ):
+        return self._client.post(
+            '/1/avail_request',
+            data={
+                'start_date': start_date, 
+                'start_time': start_time,
+                'end_date': end_date, 
+                'end_time': end_time, 
+            }
+        )
+
     def logout(self):
         return self._client.get('/auth/logout')
 

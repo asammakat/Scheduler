@@ -88,10 +88,6 @@ def test_validate_date():
     assert validate_date('1//2030') == False
     assert validate_date('1/1/') == False
 
-
-
-
-       
-
-        
-    
+def test_return_datetime():
+    test_datetime = return_datetime('1/1/2030', '6:00p')
+    assert type(test_datetime) == datetime.datetime

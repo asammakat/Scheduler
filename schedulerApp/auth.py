@@ -104,13 +104,16 @@ def login():
             'SELECT * FROM member WHERE username = ?', (username,)
         ).fetchone()
 
-        if(member != None):
-            member_password = member[2]
+        member_password = None
 
         if member is None:
             error = 'Incorrect username.'
-        elif not check_password_hash(member_password, password):
+        else:
+            member_password = member[2]
+
+        if member_password is not None and not check_password_hash(member_password, password):
             error = 'Incorrect password.'
+
         if error is None:
             session.clear()
             session['member_id'] = member[0]
@@ -133,14 +136,16 @@ def add_to_roster():
         ).fetchone()
 
         member_id = session['member_id']
-
-        if(organization is not None):
-            org_pword = organization[2]
-            org_id = organization[0]
+        org_pword = None
+        org_id = None
 
         if organization is None:
             error = 'This organization does not exist.'
-        elif not check_password_hash(org_pword, password):
+        else:
+            org_pword = organization[2]
+            org_id = organization[0]
+
+        if org_pword is not None and not check_password_hash(org_pword, password):
             error = 'Incorrect password.'
         elif db.execute(
             'SELECT * FROM roster WHERE org_id = ?',
