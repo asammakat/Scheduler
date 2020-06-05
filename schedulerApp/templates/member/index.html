@@ -16,6 +16,10 @@
               {{ avail_request[1] }}
           </a>
           with {{ avail_request[2] }}
+          {% if avail_request[3] == 0 %}
+            **Respond**
+          {% endif %}
+          <br>
         {% endfor %}
         <h1>Your Organizations: </h1>
         {% for org in orgs %}

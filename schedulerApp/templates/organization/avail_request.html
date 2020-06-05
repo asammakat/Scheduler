@@ -6,6 +6,17 @@
 
 {% block content %}
     <h1>This availability request starts at {{ avail_request_start }} and goes until {{ avail_request_end }} in {{ avail_request_tz }}</h1>
+    {% for member in members %}
+      <h1>{{ member['username'] }}:</h1>
+      {% if member['answered'] == 0 %}
+        <h1>This member has not responded</h1>
+      {% else %}
+        {% for slot in member['avail_slots'] %}
+          <h1> Available from {{ slot['start_time'] }} until {{ slot['end_time'] }} </h1>
+        {% endfor %}
+      {% endif %}
+    <br>
+    {% endfor %}
     <h1>Add your availability: </h1>
     <form method="post">
         <label for="start_date">Start Date (mm/dd/yyyy)</label>

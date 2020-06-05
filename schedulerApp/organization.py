@@ -7,7 +7,7 @@ from flask import (
 from werkzeug.exceptions import abort
 from schedulerApp.auth import login_required
 from schedulerApp.db import get_db
-from schedulerApp.helper import return_date_values, return_time_values, validate_date, validate_time, return_datetime
+from schedulerApp.helper import return_date_values, return_time_values, validate_date, validate_time, return_datetime, get_member_info
 
 bp = Blueprint('organization', __name__) 
 
@@ -72,15 +72,27 @@ def org_page(org_id):
                 (avail_request_name, start_request, end_request, tz, org_id, False)
             )
 
+            
             member_id = session.get('member_id')
             avail_request_id = db.execute(
-                'SELECT avail_request_id FROM availability_request WHERE avail_request_name = ?', 
-                (avail_request_name,)).fetchone()
+                'SELECT last_insert_rowid()'
+            ).fetchone()
 
-            db.execute(
-                'INSERT INTO member_request (member_id, avail_request_id, answered) VALUES (?,?,?)',
-                (member_id, avail_request_id[0], False)
-            )
+            #insert everyone in the organization into member_request
+            members_in_org = db.execute(
+                'SELECT member_id FROM roster WHERE roster.org_id = ?',
+                (org_id,)
+            ).fetchall()
+
+            print(members_in_org)
+            for member in members_in_org:
+                print(member)
+                org_member_id = member[0]
+
+                db.execute(
+                    'INSERT INTO member_request (member_id, avail_request_id, answered) VALUES (?,?,?)',
+                    (org_member_id, avail_request_id[0], False)
+                )
             db.commit()
 
         else:
@@ -91,6 +103,8 @@ def org_page(org_id):
 
 @bp.route('/<int:avail_request_id>/avail_request', methods=('GET', 'POST'))
 def avail_request(avail_request_id):
+    '''view information about an availability request and schedule an 
+       availability slot'''
     db = get_db()
 
     if db.execute(
@@ -111,9 +125,11 @@ def avail_request(avail_request_id):
            WHERE avail_request_id = ?''',
            (avail_request_id,)
         ).fetchone()
-    
+
+    members = get_member_info(avail_request_id)    
+
     avail_request_name = avail_request[0]
-    avail_request_start = avail_request[1].strftime("%-m/%-d/%Y %-I:%M%p")#convert datetime to formatted string
+    avail_request_start = avail_request[1].strftime("%-m/%-d/%Y %-I:%M%p")
     avail_request_end = avail_request[2].strftime("%-m/%-d/%Y %-I:%M%p")
     avail_request_tz = avail_request[3]
 
@@ -158,5 +174,6 @@ def avail_request(avail_request_id):
         avail_request_name=avail_request_name,  
         avail_request_start=avail_request_start,
         avail_request_end=avail_request_end,
-        avail_request_tz=avail_request_tz
+        avail_request_tz=avail_request_tz,
+        members=members
     )

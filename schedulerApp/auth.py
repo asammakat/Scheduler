@@ -148,8 +148,8 @@ def add_to_roster():
         if org_pword is not None and not check_password_hash(org_pword, password):
             error = 'Incorrect password.'
         elif db.execute(
-            'SELECT * FROM roster WHERE org_id = ?',
-            (org_id,)
+            'SELECT * FROM roster WHERE org_id = ? AND member_id = ?',
+            (org_id, session['member_id'])
         ).fetchone() is not None:
             error = 'You are already in the organization.'
 
