@@ -7,14 +7,25 @@ from flask import (
 from werkzeug.exceptions import abort
 from schedulerApp.auth import login_required
 from schedulerApp.db import get_db
-from schedulerApp.helper import return_date_values, return_time_values, validate_date, validate_time, return_datetime, get_member_info
+from schedulerApp.helper import(return_date_values, 
+                                return_time_values, 
+                                return_datetime,                                
+                                validate_date, 
+                                validate_time, 
+                                validate_availability_request_input,
+                                validate_availability_slot_input,                                
+                                get_avail_request, 
+                                get_member_info,
+                                insert_availability_request,
+                                insert_availability_slot)
 
-bp = Blueprint('organization', __name__) 
+bp = Blueprint('organization', __name__)  
 
 @bp.route('/<int:org_id>/org_page', methods=('GET', 'POST'))
 @login_required
-def org_page(org_id):    
-
+def org_page(org_id):
+    '''display organization information and allow user to create an 
+    availability request'''
     db = get_db()
 
     # ensure that member is in the organization 
@@ -32,8 +43,8 @@ def org_page(org_id):
     ).fetchone()
 
     if request.method == 'POST':
-
-        tz = request.form["tz"]
+        #get availability request data from form
+        tz = request.form['tz']
         avail_request_name = request.form['avail_request_name']
         start_date = request.form['start_date']
         start_time = request.form['start_time']
@@ -43,95 +54,65 @@ def org_page(org_id):
         flash(f'''Availability Request {avail_request_name} from {start_date}
                 starting at {start_time} to {end_date} ending at 
                 {end_time} in {tz} being created...''')
-            
-        error = None
-            
+                        
         # validate input
-        if avail_request_name == '':
-            error = "A name is required"
-        elif not validate_date(start_date):
-            error = "There was a problem with your start date input"
-        elif not validate_time(start_time):
-            error = "There was a problem with your start time input"
-        elif not validate_date(end_date):
-            error = "There was a problem with your end date input"
-        elif not validate_time(end_time):
-            error = "There was a problem with your end time input"
-        elif tz == '':
-            error = "Timezone is required"
+        error = validate_availability_request_input(
+            tz, 
+            avail_request_name, 
+            start_date, 
+            start_time, 
+            end_date, 
+            end_time
+        )
     
         if error is None:
-
-            start_request = return_datetime(start_date, start_time)
-            end_request = return_datetime(end_date, end_time)
-
-            db.execute(
-                ''' INSERT INTO availability_request 
-                (avail_request_name, start_request, end_request, 
-                timezone, org_id, completed) VALUES (?, ?, ?, ?, ?, ?)''',
-                (avail_request_name, start_request, end_request, tz, org_id, False)
+            # insert the availability request into the databse
+            insert_availability_request(
+                org_id,
+                tz, 
+                avail_request_name, 
+                start_date, 
+                start_time, 
+                end_date, 
+                end_time
             )
-
-            
-            member_id = session.get('member_id')
-            avail_request_id = db.execute(
-                'SELECT last_insert_rowid()'
-            ).fetchone()
-
-            #insert everyone in the organization into member_request
-            members_in_org = db.execute(
-                'SELECT member_id FROM roster WHERE roster.org_id = ?',
-                (org_id,)
-            ).fetchall()
-
-            print(members_in_org)
-            for member in members_in_org:
-                print(member)
-                org_member_id = member[0]
-
-                db.execute(
-                    'INSERT INTO member_request (member_id, avail_request_id, answered) VALUES (?,?,?)',
-                    (org_member_id, avail_request_id[0], False)
-                )
-            db.commit()
-
         else:
-            flash(error)
-
+            flash(error) 
     return render_template('organization/org_page.html/', org=org, common_timezones=common_timezones)
-
 
 @bp.route('/<int:avail_request_id>/avail_request', methods=('GET', 'POST'))
 def avail_request(avail_request_id):
-    '''view information about an availability request and schedule an 
-       availability slot'''
+    '''Display information about an availability request and allow user to add an 
+       availability slot to that request'''
     db = get_db()
 
+    # make sure the member is in the organization
     if db.execute(
         'SELECT * FROM member_request WHERE avail_request_id = ? AND member_id = ?',
         (avail_request_id, session['member_id'],)
     ).fetchone() is None:
-        flash("You are not in the organization that has the availability request")
-        return redirect(url_for('index'))
+        flash("You are not in the organization that has this availability request")
+        return redirect(url_for('index'))   
 
+    avail_request = get_avail_request(avail_request_id)
 
-    avail_request = db.execute(
-        '''SELECT 
-           availability_request.avail_request_name, 
-           availability_request.start_request,
-           availability_request.end_request,
-           availability_request.timezone
-           FROM availability_request
-           WHERE avail_request_id = ?''',
-           (avail_request_id,)
-        ).fetchone()
-
+    # get list of dicts containing each member in the organization's information
+    # regarding the availabiity request 
+    # members = [
+    #   {
+    #     'name': 'name',
+    #     'answered': True/False
+    #     'avail_slots: [
+    #        {
+    #          'start_time': 'MM/DD/YYYY hh:mm[AM/PM]'
+    #          'end_time': 'MM/DD/YYYY hh:mm[AM/PM]'
+    #        },
+    #        {...}
+    #      ]        
+    #   },
+    #   {...}
+    # ]
     members = get_member_info(avail_request_id)    
-
-    avail_request_name = avail_request[0]
-    avail_request_start = avail_request[1].strftime("%-m/%-d/%Y %-I:%M%p")
-    avail_request_end = avail_request[2].strftime("%-m/%-d/%Y %-I:%M%p")
-    avail_request_tz = avail_request[3]
 
     if request.method == 'POST':
         start_date = request.form['start_date']
@@ -139,31 +120,10 @@ def avail_request(avail_request_id):
         end_date = request.form['end_date']
         end_time = request.form['end_time']
 
-        error = None
-
-        if not validate_date(start_date):
-            error = "There was a problem with your start date input"
-        elif not validate_time(start_time):
-            error = "There was a problem with your start time input"
-        elif not validate_date(end_date):
-            error = "There was a problem with your end date input"
-        elif not validate_time(end_time):
-            error = "There was a problem with your end time input"
+        error = validate_availability_slot_input(start_date, start_time, end_date, end_time)
 
         if error is None:
-            start_slot = return_datetime(start_date, start_time)
-            end_slot = return_datetime(end_date, end_time)
-
-            db.execute(
-                '''INSERT INTO availability_slot(start_slot, end_slot, avail_request_id, member_id) VALUES (?,?,?,?)''',
-                (start_slot, end_slot, avail_request_id, session['member_id'],)
-            )
-
-            db.execute(
-                ''' UPDATE member_request SET answered = TRUE WHERE member_id = ? AND avail_request_id = ? ''',
-                (session['member_id'], avail_request_id,)
-            )
-            db.commit()
+            insert_availability_slot(avail_request_id, start_date, start_time, end_date, end_time)
             flash("Availability slot added, add another?")
         
         else:
@@ -171,9 +131,6 @@ def avail_request(avail_request_id):
 
     return render_template(
         'organization/avail_request.html/', 
-        avail_request_name=avail_request_name,  
-        avail_request_start=avail_request_start,
-        avail_request_end=avail_request_end,
-        avail_request_tz=avail_request_tz,
+        avail_request=avail_request,
         members=members
     )

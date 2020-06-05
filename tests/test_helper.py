@@ -5,13 +5,21 @@ from schedulerApp.db import get_db
 from schedulerApp.helper import * 
 
 def test_return_date_values():
-    assert return_date_values('12/12/2030') == [12,12,2030]
+    test_var = return_date_values('12/12/2030')
+    assert test_var['year'] == 2030
+    assert test_var['month'] == 12
+    assert test_var['day'] == 12
 
 def test_return_time_values():
-    assert return_time_values('1:00a') == [1, 0]
-    assert return_time_values('1:01p') == [13,1]
-    assert return_time_values('12:30p') == [12,30]
-    assert return_time_values('12:30a') == [0,30]
+    test_var = return_time_values('1:00a') 
+    assert test_var['hour'] == 1
+    assert test_var['minute'] == 0
+    test_var = return_time_values('1:01p')
+    assert test_var['hour'] == 13
+    assert test_var['minute'] == 1    
+    test_var = return_time_values('12:30p')
+    assert test_var['hour'] == 12
+    assert test_var['minute'] == 30
 
 def test_validate_time():
     for i in range(1, 13):

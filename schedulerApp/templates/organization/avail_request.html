@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}{{ avail_request_name }}{% endblock %}</h1>
+  <h1>{% block title %}{{ avail_request['name'] }}{% endblock %}</h1>
 {% endblock %}
 
 {% block content %}
-    <h1>This availability request starts at {{ avail_request_start }} and goes until {{ avail_request_end }} in {{ avail_request_tz }}</h1>
+    <h1>This availability request starts at {{ avail_request['start'] }} and goes until {{ avail_request['end'] }} in {{ avail_request['tz'] }}</h1>
     {% for member in members %}
       <h1>{{ member['username'] }}:</h1>
       {% if member['answered'] == 0 %}

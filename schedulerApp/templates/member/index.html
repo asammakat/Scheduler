@@ -12,11 +12,11 @@
         <a class="action" href="{{ url_for('auth.add_to_roster') }}">Join an organization</a>
         <h1>Your Availability Requests: </h1>
         {% for avail_request in avail_requests %}
-          <a class="action" href="{{ url_for('organization.avail_request', avail_request_id=avail_request[0]) }}">
-              {{ avail_request[1] }}
+          <a class="action" href="{{ url_for('organization.avail_request', avail_request_id=avail_request['avail_request_id']) }}">
+              {{ avail_request['avail_request_name'] }}
           </a>
-          with {{ avail_request[2] }}
-          {% if avail_request[3] == 0 %}
+          with {{ avail_request['org_name'] }}
+          {% if avail_request['answered'] == 0 %}
             **Respond**
           {% endif %}
           <br>
