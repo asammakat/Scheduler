@@ -13,13 +13,18 @@ from schedulerApp.helper import(return_date_values,
                                 validate_date, 
                                 validate_time, 
                                 validate_availability_request_input,
-                                validate_availability_slot_input,                                
+                                validate_start_and_end_input,  
+                                check_org_membership,    
+                                check_avail_request_membership,                          
                                 get_avail_request, 
                                 get_member_info,
                                 insert_availability_request,
-                                insert_availability_slot)
+                                insert_availability_slot, 
+                                insert_booked_date)
 
 bp = Blueprint('organization', __name__)  
+
+
 
 @bp.route('/<int:org_id>/org_page', methods=('GET', 'POST'))
 @login_required
@@ -29,10 +34,7 @@ def org_page(org_id):
     db = get_db()
 
     # ensure that member is in the organization 
-    if db.execute(
-        'SELECT * FROM roster WHERE org_id = ? AND member_id = ?',
-        (org_id, session['member_id'],)
-    ).fetchone() is None:
+    if check_org_membership(org_id) == False:
         flash("You are not in the organization, ask the organization for the password to join")
         return redirect(url_for('index'))
 
@@ -81,16 +83,14 @@ def org_page(org_id):
     return render_template('organization/org_page.html/', org=org, common_timezones=common_timezones)
 
 @bp.route('/<int:avail_request_id>/avail_request', methods=('GET', 'POST'))
+@login_required
 def avail_request(avail_request_id):
     '''Display information about an availability request and allow user to add an 
        availability slot to that request'''
     db = get_db()
 
     # make sure the member is in the organization
-    if db.execute(
-        'SELECT * FROM member_request WHERE avail_request_id = ? AND member_id = ?',
-        (avail_request_id, session['member_id'],)
-    ).fetchone() is None:
+    if check_avail_request_membership(avail_request_id) == False:
         flash("You are not in the organization that has this availability request")
         return redirect(url_for('index'))   
 
@@ -120,7 +120,7 @@ def avail_request(avail_request_id):
         end_date = request.form['end_date']
         end_time = request.form['end_time']
 
-        error = validate_availability_slot_input(start_date, start_time, end_date, end_time)
+        error = validate_start_and_end_input(start_date, start_time, end_date, end_time)
 
         if error is None:
             insert_availability_slot(avail_request_id, start_date, start_time, end_date, end_time)
@@ -132,5 +132,38 @@ def avail_request(avail_request_id):
     return render_template(
         'organization/avail_request.html/', 
         avail_request=avail_request,
-        members=members
+        members=members,
+        avail_request_id=avail_request_id
     )
+
+@bp.route('/<int:avail_request_id>/book', methods=('GET', 'POST'))
+@login_required
+def book(avail_request_id):
+    db = get_db()
+
+    if check_avail_request_membership(avail_request_id) == False:
+        flash("You are not in the organization that has this availability request")
+        return redirect(url_for('index'))   
+    
+    avail_request = get_avail_request(avail_request_id)
+    members = get_member_info(avail_request_id)
+
+    if request.method == 'POST':
+        start_date = request.form['start_date']
+        start_time = request.form['start_time']
+        end_date = request.form['end_date']
+        end_time = request.form['end_time']
+
+        error = validate_start_and_end_input(start_date, start_time, end_date, end_time)
+
+        if error is None:
+            insert_booked_date(avail_request_id, start_date, start_time, end_date, end_time)
+            flash("Date booked!")
+            return redirect(url_for('index', org_id = avail_request['org_id']))
+        else:
+            flash(error)
+
+
+    return render_template('organization/book.html', avail_request=avail_request, members=members)
+
+#TODO: test book

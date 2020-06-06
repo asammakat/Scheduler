@@ -46,7 +46,9 @@ CREATE TABLE booked_date(
     end_time TIMESTAMP NOT NULL,
     timezone TEXT NOT NULL,
     org_id INTEGER NOT NULL,
-    FOREIGN KEY (org_id) REFERENCES organization (org_id)
+    avail_request_id INTEGER,
+    FOREIGN KEY (org_id) REFERENCES organization (org_id),
+    FOREIGN KEY (avail_request_id) REFERENCES availability_request (avail_request_id)
 );
 
 CREATE TABLE member_request(

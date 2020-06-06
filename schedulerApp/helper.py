@@ -96,7 +96,7 @@ def validate_availability_request_input(
         error = None
     return error    
 
-def validate_availability_slot_input(start_date, start_time, end_date, end_time):
+def validate_start_and_end_input(start_date, start_time, end_date, end_time):
     '''Validate the user input to create an availability slot'''
     if not validate_date(start_date):
         error = "There was a problem with your start date input"
@@ -109,6 +109,29 @@ def validate_availability_slot_input(start_date, start_time, end_date, end_time)
     else:
         error = None 
     return error    
+
+
+
+def check_org_membership(org_id):
+    db = get_db()
+    # ensure that member is in the organization 
+    if db.execute(
+        'SELECT * FROM roster WHERE org_id = ? AND member_id = ?',
+        (org_id, session['member_id'],)
+    ).fetchone() is None:
+        return False
+    else:
+        return True
+
+def check_avail_request_membership(avail_request_id):
+    db = get_db()
+    if db.execute(
+        'SELECT * FROM member_request WHERE avail_request_id = ? AND member_id = ?',
+        (avail_request_id, session['member_id'],)
+    ).fetchone() is None:
+        return False
+    else:
+        return True
     
 def return_datetime(date_string, time_string):
     ''' take a formatted date string and a formatted time string and return
@@ -125,6 +148,42 @@ def return_datetime(date_string, time_string):
 
     return result
 
+def insert_booked_date(avail_request_id, start_date, start_time, end_date, end_time):
+    db = get_db()
+
+    start_book = return_datetime(start_date, start_time)
+    end_book = return_datetime(end_date, end_time)    
+
+    avail_request_info = db.execute(
+        '''
+        SELECT 
+        availability_request.timezone, 
+        availability_request.org_id, 
+        availability_request.avail_request_name
+        FROM availability_request
+        WHERE availability_request.avail_request_id = ?
+        ''',
+        (avail_request_id,)
+    ).fetchone()
+
+    tz = avail_request_info[0]
+    org_id = avail_request_info[1]
+    name = avail_request_info[2]
+
+    db.execute(
+        '''INSERT INTO booked_date(
+            booked_date_name, start_time, end_time, timezone, org_id, avail_request_id
+        ) VALUES (?,?,?,?,?,?)''',
+        (name, start_book, end_book, tz, org_id, avail_request_id,)
+    )
+
+    db.execute(
+        '''
+        UPDATE availability_request SET completed = TRUE WHERE avail_request_id = ?
+        ''',
+        (avail_request_id,)
+    )
+
 def insert_availability_slot(avail_request_id, start_date, start_time, end_date, end_time):
     '''insert an availability slot into the database'''
 
@@ -135,7 +194,9 @@ def insert_availability_slot(avail_request_id, start_date, start_time, end_date,
 
     # insert new availability slot into the database
     db.execute(
-        '''INSERT INTO availability_slot(start_slot, end_slot, avail_request_id, member_id) VALUES (?,?,?,?)''',
+        '''INSERT INTO availability_slot(
+            start_slot, end_slot, avail_request_id, member_id
+        ) VALUES (?,?,?,?)''',
         (start_slot, end_slot, avail_request_id, session['member_id'],)
     )
 
@@ -206,7 +267,8 @@ def get_avail_request(avail_request_id):
            availability_request.avail_request_name, 
            availability_request.start_request,
            availability_request.end_request,
-           availability_request.timezone
+           availability_request.timezone,
+           availability_request.org_id
            FROM availability_request
            WHERE avail_request_id = ?''',
            (avail_request_id,)
@@ -218,6 +280,7 @@ def get_avail_request(avail_request_id):
     avail_request['start'] = avail_request_from_db[1].strftime("%-m/%-d/%Y %-I:%M%p")
     avail_request['end'] = avail_request_from_db[2].strftime("%-m/%-d/%Y %-I:%M%p")
     avail_request['tz'] = avail_request_from_db[3] 
+    avail_request['org_id'] = avail_request_from_db[4]
 
     return avail_request  
 
