@@ -70,6 +70,45 @@ def validate_date(date):
         return True
     else:
         return False   
+
+def validate_availability_request_input(
+    tz, 
+    avail_request_name, 
+    start_date, 
+    start_time, 
+    end_date, 
+    end_time
+):
+    '''Validate the user input to create an availability request'''
+    if avail_request_name == '':
+        error = "A name is required"
+    elif not validate_date(start_date):
+        error = "There was a problem with your start date input"
+    elif not validate_time(start_time):
+        error = "There was a problem with your start time input"
+    elif not validate_date(end_date):
+        error = "There was a problem with your end date input"
+    elif not validate_time(end_time):
+        error = "There was a problem with your end time input"
+    elif tz == '':
+        error = "Timezone is required"
+    else:
+        error = None
+    return error    
+
+def validate_availability_slot_input(start_date, start_time, end_date, end_time):
+    '''Validate the user input to create an availability slot'''
+    if not validate_date(start_date):
+        error = "There was a problem with your start date input"
+    elif not validate_time(start_time):
+        error = "There was a problem with your start time input"
+    elif not validate_date(end_date):
+        error = "There was a problem with your end date input"
+    elif not validate_time(end_time):
+        error = "There was a problem with your end time input"   
+    else:
+        error = None 
+    return error    
     
 def return_datetime(date_string, time_string):
     ''' take a formatted date string and a formatted time string and return
@@ -302,42 +341,3 @@ def get_member_info(avail_request_id):
 
         members.append(member)
     return members
-
-def validate_availability_request_input(
-    tz, 
-    avail_request_name, 
-    start_date, 
-    start_time, 
-    end_date, 
-    end_time
-):
-    '''Validate the user input to create an availability request'''
-    if avail_request_name == '':
-        error = "A name is required"
-    elif not validate_date(start_date):
-        error = "There was a problem with your start date input"
-    elif not validate_time(start_time):
-        error = "There was a problem with your start time input"
-    elif not validate_date(end_date):
-        error = "There was a problem with your end date input"
-    elif not validate_time(end_time):
-        error = "There was a problem with your end time input"
-    elif tz == '':
-        error = "Timezone is required"
-    else:
-        error = None
-    return error    
-
-def validate_availability_slot_input(start_date, start_time, end_date, end_time):
-    '''Validate the user input to create an availability slot'''
-    if not validate_date(start_date):
-        error = "There was a problem with your start date input"
-    elif not validate_time(start_time):
-        error = "There was a problem with your start time input"
-    elif not validate_date(end_date):
-        error = "There was a problem with your end date input"
-    elif not validate_time(end_time):
-        error = "There was a problem with your end time input"   
-    else:
-        error = None 
-    return error    

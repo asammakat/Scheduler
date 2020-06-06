@@ -51,6 +51,10 @@ def test_avail_request(auth, client, app):
 
     auth.add_avail_slot()
 
+    response = client.get('/1/avail_request')
+
+    assert b"Available from 1/1/2021 10:00AM until 1/1/2021 1:00PM" in response.data
+
     with app.app_context():
         db = get_db()
         assert db.execute(
@@ -60,8 +64,6 @@ def test_avail_request(auth, client, app):
         assert db.execute(
             "SELECT * FROM member_request WHERE member_id = 1 AND answered = 1",
         ).fetchone() is not None
-
-
 
 @pytest.mark.parametrize(('start_date', 'start_time', 'end_date', 'end_time', 'message'),(
     ('', '1:30a', '1/1/2030', '2:00p', b"There was a problem with your start date input"),
