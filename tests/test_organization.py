@@ -97,8 +97,15 @@ def test_book(auth, client, app):
     with app.app_context():
         db = get_db()
         assert db.execute(
-            '''SELECT * FROM booked_date WHERE booked_date_name = 'testAR' '''
-        ) is not None
+            '''SELECT * FROM booked_date WHERE booked_date_name = 'testAR' ''',
+        ).fetchone() is not None
+
+        assert db.execute(
+            '''
+            SELECT availability_request.completed FROM availability_request 
+            WHERE availability_request.avail_request_id = 1 
+            ''',
+        ).fetchone()[0] == 1
 
 
 @pytest.mark.parametrize(('start_date', 'start_time', 'end_date', 'end_time', 'message'),(

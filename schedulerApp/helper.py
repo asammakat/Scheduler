@@ -183,6 +183,7 @@ def insert_booked_date(avail_request_id, start_date, start_time, end_date, end_t
         ''',
         (avail_request_id,)
     )
+    db.commit()
 
 def insert_availability_slot(avail_request_id, start_date, start_time, end_date, end_time):
     '''insert an availability slot into the database'''

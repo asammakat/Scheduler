@@ -163,7 +163,6 @@ def book(avail_request_id):
         else:
             flash(error)
 
-
     return render_template('organization/book.html', avail_request=avail_request, members=members)
 
 #TODO: test book
