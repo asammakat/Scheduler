@@ -55,6 +55,7 @@ class AuthActions(object):
     
     def make_avail_request(
         self, 
+        org_id=1,
         avail_request_name='testAR', 
         start_date='1/1/2021', 
         start_time='1:30a', 
@@ -62,8 +63,9 @@ class AuthActions(object):
         end_time='2:00p', 
         tz='UTC'
     ):
+        url = '/' + str(org_id) + '/org_page'
         return self._client.post(
-            '/1/org_page',
+            url,
             data={
                 'avail_request_name': avail_request_name,
                 'start_date': start_date, 
@@ -75,14 +77,16 @@ class AuthActions(object):
     )
 
     def add_avail_slot(
-        self,        
+        self,
+        avail_request_id = 1,      
         start_date='1/1/2021', 
         start_time='10:00a', 
         end_date='1/1/2021', 
         end_time='1:00p' 
     ):
+        url = '/' + str(avail_request_id) + '/avail_request'
         return self._client.post(
-            '/1/avail_request',
+            url,
             data={
                 'start_date': start_date, 
                 'start_time': start_time,

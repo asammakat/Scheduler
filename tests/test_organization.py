@@ -5,7 +5,20 @@ from schedulerApp.db import get_db
 
 def test_org_page(auth, client, app):
     auth.login()
-    assert client.get('/1/org_page').status_code == 200
+    auth.add_to_roster('testOrg1', 'test')
+    auth.make_avail_request(org_id=2)    
+
+    response = client.get('/2/org_page')
+    assert response.status_code == 200
+    assert b'testAR' in response.data
+    assert b'Not completed' in response.data #no availability slots have been filled
+
+    auth.add_avail_slot()
+
+    response = client.get('/2/org_page')
+    assert response.status_code == 200
+    assert b'testAR' in response.data
+    assert b'Completed' in response.data #all availability slots have been filled
 
     response = client.get(
         '/99/org_page'
@@ -54,6 +67,8 @@ def test_avail_request(auth, client, app):
     response = client.get('/1/avail_request')
 
     assert b"Available from 1/1/2021 10:00AM until 1/1/2021 1:00PM" in response.data
+    assert b"Ready to book" not in response.data
+
 
     with app.app_context():
         db = get_db()
@@ -65,6 +80,23 @@ def test_avail_request(auth, client, app):
             "SELECT * FROM member_request WHERE member_id = 1 AND answered = 1",
         ).fetchone() is not None
 
+        assert db.execute(
+            '''
+            SELECT * FROM availability_request WHERE completed = TRUE
+            '''
+        ).fetchone() is None
+
+        auth.add_to_roster('testOrg1', 'test')
+        auth.make_avail_request(org_id=2)
+        response = auth.add_avail_slot(avail_request_id=2)
+        assert b"Ready to book" in response.data
+
+        assert db.execute(
+            '''
+            SELECT * FROM availability_request WHERE completed = TRUE
+            '''
+        ).fetchone() is not None
+        
 @pytest.mark.parametrize(('start_date', 'start_time', 'end_date', 'end_time', 'message'),(
     ('', '1:30a', '1/1/2030', '2:00p', b"There was a problem with your start date input"),
     ('1/1/2030', '', '1/1/2030', '2:00p', b"There was a problem with your start time input"),
@@ -85,14 +117,18 @@ def test_avail_request_validate_input(start_date, start_time, end_date, end_time
 def test_book(auth, client, app):
     auth.login()
     auth.make_avail_request()
-    assert client.get('/1/book').status_code == 200
+    response = client.get('/1/book')
+
+    assert response.status_code == 200
+    assert b'testAR' in response.data
 
     response = client.get(
         '/99/book'
     )  
     assert response.headers['Location'] == 'http://localhost/' 
 
-    auth.book()
+    response = auth.book()
+    assert response.headers['Location'] == 'http://localhost/?org_id=1'
 
     with app.app_context():
         db = get_db()
@@ -100,12 +136,12 @@ def test_book(auth, client, app):
             '''SELECT * FROM booked_date WHERE booked_date_name = 'testAR' ''',
         ).fetchone() is not None
 
-        assert db.execute(
-            '''
-            SELECT availability_request.completed FROM availability_request 
-            WHERE availability_request.avail_request_id = 1 
-            ''',
-        ).fetchone()[0] == 1
+        # assert db.execute(
+        #     '''
+        #     SELECT * FROM availability_request 
+        #     WHERE availability_request.avail_request_id = 1 
+        #     ''',
+        # ).fetchone() is None
 
 
 @pytest.mark.parametrize(('start_date', 'start_time', 'end_date', 'end_time', 'message'),(

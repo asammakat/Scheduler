@@ -10,4 +10,5 @@ VALUES
 
 INSERT INTO roster (org_id, member_id)
 VALUES
-  (1, 1);
+  (1, 1),
+  (1, 2);

@@ -20,11 +20,10 @@ from schedulerApp.helper import(return_date_values,
                                 get_member_info,
                                 insert_availability_request,
                                 insert_availability_slot, 
-                                insert_booked_date)
+                                insert_booked_date,
+                                check_if_complete)
 
 bp = Blueprint('organization', __name__)  
-
-
 
 @bp.route('/<int:org_id>/org_page', methods=('GET', 'POST'))
 @login_required
@@ -43,6 +42,42 @@ def org_page(org_id):
         'SELECT * FROM organization WHERE org_id = ?',
         (org_id,)
     ).fetchone()
+
+    roster = db.execute(
+        '''
+        SELECT member.username 
+        FROM member
+        WHERE member.member_id 
+        IN(
+            SELECT roster.member_id
+            FROM roster
+            WHERE roster.org_id = ?
+        )
+        ''',
+        (org_id,)
+    ).fetchall()
+
+    org_avail_requests_from_db = db.execute(
+        '''
+        SELECT 
+        availability_request.avail_request_id,
+        availability_request.avail_request_name,
+        availability_request.completed
+        FROM availability_request
+        WHERE availability_request.org_id = ?
+        ''',
+        (org_id,)
+    ).fetchall()
+
+    org_avail_requests = []
+
+    for org_avail_request in org_avail_requests_from_db:
+        avail_request = {}
+        avail_request['avail_request_id'] = org_avail_request[0]
+        avail_request['avail_request_name'] = org_avail_request[1]
+        avail_request['completed'] = org_avail_request[2]
+
+        org_avail_requests.append(avail_request)
 
     if request.method == 'POST':
         #get availability request data from form
@@ -80,7 +115,13 @@ def org_page(org_id):
             )
         else:
             flash(error) 
-    return render_template('organization/org_page.html/', org=org, common_timezones=common_timezones)
+    return render_template(
+        'organization/org_page.html/', 
+        roster=roster, 
+        org=org, 
+        common_timezones=common_timezones,
+        org_avail_requests=org_avail_requests
+    )
 
 @bp.route('/<int:avail_request_id>/avail_request', methods=('GET', 'POST'))
 @login_required
@@ -125,6 +166,8 @@ def avail_request(avail_request_id):
         if error is None:
             insert_availability_slot(avail_request_id, start_date, start_time, end_date, end_time)
             flash("Availability slot added, add another?")
+            if check_if_complete(avail_request_id):
+                flash("Request complete! Ready to book")
         
         else:
             flash(error)
@@ -164,5 +207,3 @@ def book(avail_request_id):
             flash(error)
 
     return render_template('organization/book.html', avail_request=avail_request, members=members)
-
-#TODO: test book

@@ -110,8 +110,6 @@ def validate_start_and_end_input(start_date, start_time, end_date, end_time):
         error = None 
     return error    
 
-
-
 def check_org_membership(org_id):
     db = get_db()
     # ensure that member is in the organization 
@@ -177,12 +175,14 @@ def insert_booked_date(avail_request_id, start_date, start_time, end_date, end_t
         (name, start_book, end_book, tz, org_id, avail_request_id,)
     )
 
-    db.execute(
-        '''
-        UPDATE availability_request SET completed = TRUE WHERE avail_request_id = ?
-        ''',
-        (avail_request_id,)
-    )
+    # REMOVED, NOT SURE WHAT BEST DECISION IS
+    # # date is booked so delete the availability request 
+    # db.execute(
+    #     '''
+    #     DELETE FROM availability_request WHERE avail_request_id = ?
+    #     ''',
+    #     (avail_request_id,)
+    # )
     db.commit()
 
 def insert_availability_slot(avail_request_id, start_date, start_time, end_date, end_time):
@@ -405,3 +405,27 @@ def get_member_info(avail_request_id):
 
         members.append(member)
     return members
+
+def check_if_complete(avail_request_id):
+    db = get_db()
+    answered_list = db.execute(
+        '''
+        SELECT answered FROM member_request WHERE member_request.avail_request_id = ?
+        ''',
+        (avail_request_id,)
+    ).fetchall()
+
+    for answer in answered_list:
+        if answer[0] == 0:
+            return False
+
+    #all members have answered so availability request is complete
+    db.execute(
+        '''
+        UPDATE availability_request SET completed = TRUE 
+        WHERE availability_request.avail_request_id = ?
+        ''',
+        (avail_request_id,)
+    )
+    db.commit()
+    return True
