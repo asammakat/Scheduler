@@ -7,21 +7,31 @@ from flask import (
 from werkzeug.exceptions import abort
 from schedulerApp.auth import login_required
 from schedulerApp.db import get_db
-from schedulerApp.helper import(return_date_values, 
-                                return_time_values, 
-                                return_datetime,                                
-                                validate_date, 
-                                validate_time, 
-                                validate_availability_request_input,
-                                validate_start_and_end_input,  
-                                check_org_membership,    
-                                check_avail_request_membership,                          
-                                get_avail_request, 
-                                get_member_info,
-                                insert_availability_request,
-                                insert_availability_slot, 
-                                insert_booked_date,
-                                check_if_complete)
+
+from schedulerApp.util import return_date_values, return_time_values, return_datetime
+
+from schedulerApp.validate import (
+    validate_date, 
+    validate_time, 
+    validate_availability_request_input, 
+    validate_start_and_end_input,
+    check_org_membership, 
+    check_avail_request_membership
+)
+
+from schedulerApp.update_db import(
+    insert_availability_request,
+    insert_availability_slot, 
+    insert_booked_date, 
+    check_if_complete
+)
+
+from schedulerApp.query_db import(
+    get_avail_request, 
+    get_member_info,
+    get_org_avail_requests, 
+    get_org_booked_dates
+)
 
 bp = Blueprint('organization', __name__)  
 
@@ -57,27 +67,8 @@ def org_page(org_id):
         (org_id,)
     ).fetchall()
 
-    org_avail_requests_from_db = db.execute(
-        '''
-        SELECT 
-        availability_request.avail_request_id,
-        availability_request.avail_request_name,
-        availability_request.completed
-        FROM availability_request
-        WHERE availability_request.org_id = ?
-        ''',
-        (org_id,)
-    ).fetchall()
-
-    org_avail_requests = []
-
-    for org_avail_request in org_avail_requests_from_db:
-        avail_request = {}
-        avail_request['avail_request_id'] = org_avail_request[0]
-        avail_request['avail_request_name'] = org_avail_request[1]
-        avail_request['completed'] = org_avail_request[2]
-
-        org_avail_requests.append(avail_request)
+    org_avail_requests = get_org_avail_requests(org_id)
+    org_booked_dates = get_org_booked_dates(org_id)
 
     if request.method == 'POST':
         #get availability request data from form
@@ -120,7 +111,8 @@ def org_page(org_id):
         roster=roster, 
         org=org, 
         common_timezones=common_timezones,
-        org_avail_requests=org_avail_requests
+        org_avail_requests=org_avail_requests,
+        org_booked_dates=org_booked_dates
     )
 
 @bp.route('/<int:avail_request_id>/avail_request', methods=('GET', 'POST'))
@@ -182,12 +174,16 @@ def avail_request(avail_request_id):
 @bp.route('/<int:avail_request_id>/book', methods=('GET', 'POST'))
 @login_required
 def book(avail_request_id):
+    '''Display all of the entered avalability for an abailability request 
+    and allow a user to create a booked date'''
     db = get_db()
 
+    # ensure that the member is in the organization that has the availability request
     if check_avail_request_membership(avail_request_id) == False:
         flash("You are not in the organization that has this availability request")
         return redirect(url_for('index'))   
     
+    # get the data from the database to be displayed 
     avail_request = get_avail_request(avail_request_id)
     members = get_member_info(avail_request_id)
 

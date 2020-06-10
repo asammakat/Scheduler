@@ -34,10 +34,12 @@ def create_app(test_config=None):
     app.register_blueprint(member.bp)
     app.add_url_rule('/', endpoint='index')
 
-    from . import helper    
-
     from . import organization
-    app.register_blueprint(organization.bp)
+    app.register_blueprint(organization.bp)    
 
+    from . import util
+    from . import validate
+    from . import update_db
+    from . import query_db
 
     return app    

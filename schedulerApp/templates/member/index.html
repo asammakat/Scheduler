@@ -21,6 +21,13 @@
           {% endif %}
           <br>
         {% endfor %}
+        <h1>Your booked dates: </h1>
+        {% for date in booked_dates%}
+          {{ date['booked_date_name'] }} 
+          in {{ date['timezone'] }} 
+          from {{ date['start_time'].strftime("%-m/%-d/%Y %-I:%M%p") }} 
+          until {{ date['end_time'].strftime("%-m/%-d/%Y %-I:%M%p") }}
+        {% endfor %}
         <h1>Your Organizations: </h1>
         {% for org in orgs %}
           <article class="post">

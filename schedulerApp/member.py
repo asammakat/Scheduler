@@ -5,7 +5,8 @@ from werkzeug.exceptions import abort
 
 from schedulerApp.auth import login_required
 from schedulerApp.db import get_db
-from schedulerApp.helper import get_avail_requests_data
+
+from schedulerApp.query_db import get_avail_requests_data, get_member_booked_dates
 
 bp = Blueprint('member', __name__)
 
@@ -18,13 +19,29 @@ def index():
     orgs = None
     avail_requests = None
     member_id = session.get('member_id')
+    booked_dates = None
     if member_id is not None:
         orgs = db.execute(
-            'SELECT organization.org_name, organization.org_id FROM organization WHERE organization.org_id IN (SELECT roster.org_id FROM roster WHERE member_id = ?)', 
+            '''
+            SELECT 
+            organization.org_name, 
+            organization.org_id 
+            FROM organization 
+            WHERE organization.org_id 
+            IN (
+                SELECT roster.org_id FROM roster WHERE member_id = ?
+            )
+            ''', 
             (member_id,)
-        ).fetchall() 
+        ).fetchall()
 
         avail_requests = get_avail_requests_data(member_id)
+        booked_dates = get_member_booked_dates(member_id)
 
-    return render_template('member/index.html', orgs=orgs, avail_requests=avail_requests)
+    return render_template(
+        'member/index.html', 
+        orgs=orgs, 
+        avail_requests=avail_requests, 
+        booked_dates=booked_dates
+    )
 

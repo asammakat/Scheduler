@@ -9,19 +9,35 @@
   {% for member in roster %}
     <h3>{{ member[0] }}</h3>
   {% endfor %}
-  <h1>Availability Requests</h1>
+  <h1>Availability Requests:</h1>
   {% for avail_request in org_avail_requests %}
     {% if avail_request['completed'] == 0 %}
-      <h3>{{ avail_request['avail_request_name'] }} Not completed</h3>
+      <a class="action" href="{{ url_for('organization.avail_request', avail_request_id=avail_request['avail_request_id']) }}">
+        {{ avail_request['avail_request_name'] }}
+      </a>
+      Not completed, need responses from:
+      {% for member_not_answered in avail_request['members_not_answered'] %}
+        {{ member_not_answered }}
+      {% endfor %}
     {% endif %}
+  <br>
   {% endfor %}
+
   {% for avail_request in org_avail_requests %}
     {% if avail_request['completed'] == 1 %}
-      <h3>{{ avail_request['avail_request_name'] }} Completed
+    <a class="action" href="{{ url_for('organization.avail_request', avail_request_id=avail_request['avail_request_id']) }}">
+      {{ avail_request['avail_request_name'] }}
+    </a>    
+    Completed
         <a class="action" href="{{ url_for('organization.book', avail_request_id=avail_request['avail_request_id']) }}" >BOOK</a>
-      </h3>
     {% endif %}
   {% endfor %}  
+  <h1>Booked dates: </h1>
+  {% for date in org_booked_dates %}
+    {{ date['booked_date_name'] }} in {{ date['timezone'] }} 
+    from {{ date['start_time'].strftime("%-m/%-d/%Y %-I:%M%p") }} 
+    until {{ date['end_time'].strftime("%-m/%-d/%Y %-I:%M%p") }}
+  {% endfor %}
   <h1>Create an availability request:</h1>
   <form method="post">
     <label for="tz">Timezone</label>

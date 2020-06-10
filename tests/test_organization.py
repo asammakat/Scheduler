@@ -14,6 +14,7 @@ def test_org_page(auth, client, app):
     assert b'Not completed' in response.data #no availability slots have been filled
 
     auth.add_avail_slot()
+    auth.book()
 
     response = client.get('/2/org_page')
     assert response.status_code == 200

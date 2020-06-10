@@ -1,28 +1,6 @@
 import pytest
+from schedulerApp.validate import * 
 
-from flask import g, session
-from schedulerApp.db import get_db
-from schedulerApp.helper import * 
-
-def test_return_date_values():
-    test_var = return_date_values('12/12/2030')
-    assert test_var['year'] == 2030
-    assert test_var['month'] == 12
-    assert test_var['day'] == 12
-
-def test_return_time_values():
-    test_var = return_time_values('1:00a') 
-    assert test_var['hour'] == 1
-    assert test_var['minute'] == 0
-    test_var = return_time_values('1:01p')
-    assert test_var['hour'] == 13
-    assert test_var['minute'] == 1    
-    test_var = return_time_values('12:30p')
-    assert test_var['hour'] == 12
-    assert test_var['minute'] == 30
-    test_var = return_time_values('12:01a')
-    assert test_var['hour'] == 0
-    assert test_var['minute'] == 1
 
 def test_validate_time():
     for i in range(1, 13):
@@ -98,20 +76,3 @@ def test_validate_date():
     assert validate_date('/1/2030') == False
     assert validate_date('1//2030') == False
     assert validate_date('1/1/') == False
-
-def test_return_datetime():
-    test_datetime = return_datetime('1/1/2030', '6:00p')
-    assert type(test_datetime) == datetime.datetime
-
-# def test_insert_availability_request(app):
-#     with app.test_request_context():
-#         insert_availability_request(1, 'UTC', 'testAR', '1/1/2030', '12:00p', '1/1/2030', '1:00p')         
-#         assert get_db().execute(
-#             'SELECT * FROM availability_request'
-#         ).fetchone() is not None
-
-#         assert get_db().execute(
-#             'SELECT * FROM member_request'
-#         ).fetchone() is not None
-    
-

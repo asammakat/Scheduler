@@ -8,6 +8,7 @@ def test_index(client, auth, app):
     auth.login()
     auth.add_to_roster()
     auth.make_avail_request()
+    auth.book()
     t = client.get('/')
     print(t.data)
     assert b'**Respond**' in t.data
