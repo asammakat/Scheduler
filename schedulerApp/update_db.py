@@ -140,7 +140,7 @@ def check_if_complete(avail_request_id):
 
 def delete_old_availability_requests_by_member(member_id):
     '''delete all of the availability requests associated with a member that are
-    older than datatime.utcnow()'''
+    older than datetime.utcnow()'''
     db = get_db()
 
     db.execute(
@@ -184,6 +184,17 @@ def delete_old_booked_dates_by_member(member_id):
     '''delete all booked dates associated with a member that are older than 
     datetime.utcnow()'''
     db = get_db()
+
+    debug_data = db.execute(
+        '''
+        SELECT * 
+        FROM booked_date
+        WHERE booked_date.end_time < ?
+        ''',
+        (datetime.utcnow(),)
+    ).fetchall()
+
+    print("DEBUG: ", debug_data)
 
     db.execute(
         '''

@@ -1,5 +1,8 @@
 from flask import session
+
 from schedulerApp.db import get_db
+from schedulerApp.util import convert_datetime_to_user_tz
+
 
 def get_member_booked_dates(member_id):
     '''create a list of dicts with information from all of the booked dates for a member
@@ -7,8 +10,6 @@ def get_member_booked_dates(member_id):
     'booked_date_name, 'start_time', 'end_time', and 'timezone'''
     db = get_db()
 
-    # get the desired fields for all of the booked dates
-    # associciated with a member from the database
     member_booked_dates_from_db = db.execute(
         '''
         SELECT 
@@ -17,26 +18,28 @@ def get_member_booked_dates(member_id):
         booked_date.end_time,
         booked_date.timezone
         FROM booked_date
-        WHERE booked_date.avail_request_id 
+        WHERE booked_date.org_id
         IN (
-            SELECT member_request.avail_request_id
-            FROM member_request
-            WHERE member_request.member_id - ?
+            SELECT roster.org_id
+            FROM roster
+            WHERE roster.member_id = ?
         )
         ''',
         (member_id,)
-    ).fetchall()
+    ).fetchall()    
 
     member_booked_dates = []
 
     # create the dict objects for each booked date and append them to the list 
     # that will be returned
     for date in member_booked_dates_from_db:
+        timezone = date[3]
+
         member_booked_date = {}
         member_booked_date['booked_date_name'] = date[0]
-        member_booked_date['start_time'] = date[1]
-        member_booked_date['end_time'] = date[2]
-        member_booked_date['timezone'] = date[3]
+        member_booked_date['start_time'] = convert_datetime_to_user_tz(date[1], timezone)
+        member_booked_date['end_time'] = convert_datetime_to_user_tz(date[2], timezone)
+        member_booked_date['timezone'] = timezone
 
         member_booked_dates.append(member_booked_date)
     
@@ -44,7 +47,7 @@ def get_member_booked_dates(member_id):
 
 def get_org_avail_requests(org_id):
     '''create a list of dicts containing information from all of the 
-    availability requests assiciated with a particular organization te be displayed
+    availability requests assiciated with a particular organization to be displayed
     on the organization page. Each dict contains the keys 'avail_request_id',
     'avail_request_name', 'completed' and 'members_not_answered' '''
     db = get_db()
@@ -125,12 +128,17 @@ def get_org_booked_dates(org_id):
     # create a dict object for each booked date and append them 
     # to the list that will be returned
     for date in org_booked_dates_from_db:
-        booked_date = {}
+        booked_date = {}        
+
+        timezone = date[4]
+        start_time = convert_datetime_to_user_tz(date[2], timezone)
+        end_time = convert_datetime_to_user_tz(date[3], timezone)
+
         booked_date['booked_date_name'] = date[0]
         booked_date['booked_date_id'] = date[1]
-        booked_date['start_time'] = date[2]
-        booked_date['end_time'] = date[3]
-        booked_date['timezone'] = date[4]
+        booked_date['start_time'] = start_time.strftime("%-m/%-d/%Y %-I:%M%p")
+        booked_date['end_time'] = end_time.strftime("%-m/%-d/%Y %-I:%M%p")
+        booked_date['timezone'] = timezone
 
         booked_dates.append(booked_date)
 
@@ -156,10 +164,15 @@ def get_avail_request(avail_request_id):
 
     # create a dict to store availability request information
     avail_request = {}
+
+    timezone = avail_request_from_db[3]
+    start_time = convert_datetime_to_user_tz(avail_request_from_db[1], timezone)
+    end_time = convert_datetime_to_user_tz(avail_request_from_db[2], timezone)
+
     avail_request['name'] = avail_request_from_db[0]
-    avail_request['start'] = avail_request_from_db[1].strftime("%-m/%-d/%Y %-I:%M%p")
-    avail_request['end'] = avail_request_from_db[2].strftime("%-m/%-d/%Y %-I:%M%p")
-    avail_request['tz'] = avail_request_from_db[3] 
+    avail_request['start'] = start_time.strftime("%-m/%-d/%Y %-I:%M%p")
+    avail_request['end'] = end_time.strftime("%-m/%-d/%Y %-I:%M%p")
+    avail_request['tz'] = timezone 
     avail_request['org_id'] = avail_request_from_db[4]
 
     return avail_request  
@@ -235,15 +248,27 @@ def get_avail_requests_data(member_id):
 def get_member_info(avail_request_id):
     '''Build a list of dicts of all of the usernames, their answered status, 
     and the start and end times of any availability slots they have created 
-    in association with a particular availability request.'''
+    in association with a particular availability request to be displayed on 
+    the availability request page and the book page.'''
     db = get_db()
     members = []
+
+    # get timzone of the avail request to convert avail_slot times from UTC
+    timezone = db.execute(
+        '''
+        SELECT availability_request.timezone
+        FROM availability_request
+        WHERE avail_request_id = ?
+        ''',
+        (avail_request_id,)
+    ).fetchone()[0]
 
     # get each member and their answered status associated with the availability request
     roster = db.execute(
         '''
         SELECT member_request.member_id, member_request.answered
-        FROM member_request where member_request.avail_request_id = ?
+        FROM member_request 
+        WHERE member_request.avail_request_id = ?
         ''',
         (avail_request_id, )
     ).fetchall()
@@ -279,8 +304,12 @@ def get_member_info(avail_request_id):
         #grab the start and end times for each availability_slot the member has created
         for s in slots_from_db:
             slot = {}
-            slot['start_time'] = s[0].strftime("%-m/%-d/%Y %-I:%M%p")
-            slot['end_time'] = s[1].strftime("%-m/%-d/%Y %-I:%M%p")
+
+            start_time = convert_datetime_to_user_tz(s[0], timezone)
+            end_time = convert_datetime_to_user_tz(s[1], timezone)
+
+            slot['start_time'] = start_time.strftime("%-m/%-d/%Y %-I:%M%p")
+            slot['end_time'] = end_time.strftime("%-m/%-d/%Y %-I:%M%p")
             slots.append(slot)
         
         member['avail_slots'] = slots

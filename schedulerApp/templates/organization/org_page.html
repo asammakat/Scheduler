@@ -35,8 +35,8 @@
   <h1>Booked dates: </h1>
   {% for date in org_booked_dates %}
     {{ date['booked_date_name'] }} in {{ date['timezone'] }} 
-    from {{ date['start_time'].strftime("%-m/%-d/%Y %-I:%M%p") }} 
-    until {{ date['end_time'].strftime("%-m/%-d/%Y %-I:%M%p") }}
+    from {{ date['start_time'] }} 
+    until {{ date['end_time'] }}
   {% endfor %}
   <h1>Create an availability request:</h1>
   <form method="post">

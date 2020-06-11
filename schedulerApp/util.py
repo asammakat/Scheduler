@@ -65,5 +65,12 @@ def return_datetime(date_string, time_string, timezone):
     # cannot store timezone info in sqlite3
     result = result_utc.replace(tzinfo=None)
 
+    return result
+
+def convert_datetime_to_user_tz(datetime_in_utc, timezone):
+    '''Convert a datetime in utc to the user entered timezone'''
+    user_tz = pytz.timezone(timezone)
+    datetime_localized_utc = pytz.timezone('utc').localize(datetime_in_utc)
+    result = datetime_localized_utc.astimezone(user_tz)
 
     return result

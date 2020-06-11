@@ -276,6 +276,18 @@ def test_delete_old_booked_dates_by_member(app):
             (avail_request_name, start_time, end_time, timezone, org_id)
         )
 
+        db.execute( #BUG having this member_request stops the delete from happening
+            '''
+            INSERT INTO member_request (
+                member_id,
+                avail_request_id,
+                answered
+            )
+            VALUES (?,?,?)
+            ''',
+            (1,2,0)
+        )
+
         db.execute(
             '''
             INSERT INTO booked_date (
@@ -324,13 +336,13 @@ def test_delete_old_booked_dates_by_member(app):
         ).fetchone() is not None      
 
 
-        delete_old_availability_requests_by_member(1)
+        delete_old_availability_requests_by_member(1) #BUG this stops the dete from booked_date
 
         # deleting the availability_requests should not delete the booked date
         assert db.execute(
             '''
             SELECT * FROM booked_date 
-            WHERE booked_date.avail_request_id = 2
+            WHERE booked_date.booked_date_name = 'testBD1'
             '''
         ).fetchone() is not None    
 
@@ -340,7 +352,7 @@ def test_delete_old_booked_dates_by_member(app):
         assert db.execute(
             '''
             SELECT * FROM booked_date 
-            WHERE booked_date.avail_request_id = 2
+            WHERE booked_date.avail_request_id = 'testBD1'
             '''
         ).fetchone() is None    
 
