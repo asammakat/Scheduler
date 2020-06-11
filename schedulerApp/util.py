@@ -1,5 +1,6 @@
 import re
 import datetime
+import pytz
 
 def return_date_values(date):
     '''take a formatted string (mm/dd/yyyy) and return a dict with month, day, and year info'''
@@ -42,17 +43,27 @@ def return_time_values(time):
     result['minute'] = minute 
     return result
 
-def return_datetime(date_string, time_string):
+def return_datetime(date_string, time_string, timezone):
     ''' take a formatted date string and a formatted time string and return
     a datetime object from them '''
     #dates are returned as a dict with 'day', 'month' and 'year' keys
     #times are be returned as a dict with 'hour' and 'minute' keys
     date = return_date_values(date_string)
-    time = return_time_values(time_string) 
+    time = return_time_values(time_string)
 
-    result = datetime.datetime(
+    request_time = pytz.timezone(timezone) 
+    result_tz = pytz.timezone('utc')
+
+    result_local_time = request_time.localize(datetime.datetime(
         date['year'], date['month'], date['day'],
         time['hour'], time['minute']
-    )
+    ))
+
+    # convert time to utc
+    result_utc = result_local_time.astimezone(result_tz)
+
+    # cannot store timezone info in sqlite3
+    result = result_utc.replace(tzinfo=None)
+
 
     return result

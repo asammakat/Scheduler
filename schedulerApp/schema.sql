@@ -1,10 +1,12 @@
-DROP TABLE IF EXISTS organization;
-DROP TABLE IF EXISTS member;
-DROP TABLE IF EXISTS availability_request;
-DROP TABLE IF EXISTS availability_slot;
-DROP TABLE IF EXISTS booked_date;
+-- PRAGMA FOREIGN_KEYS = ON;
+
 DROP TABLE IF EXISTS member_request;
 DROP TABLE IF EXISTS roster;
+DROP TABLE IF EXISTS booked_date;
+DROP TABLE IF EXISTS availability_slot;
+DROP TABLE IF EXISTS availability_request;
+DROP TABLE IF EXISTS organization;
+DROP TABLE IF EXISTS member;
 
 CREATE TABLE organization(
     org_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,7 +28,7 @@ CREATE TABLE availability_request(
     timezone TEXT NOT NULL,
     org_id INTEGER NOT NULL,
     completed BIT DEFAULT FALSE,
-    FOREIGN KEY (org_id) REFERENCES organization (org_id)
+    FOREIGN KEY (org_id) REFERENCES organization (org_id) ON DELETE CASCADE
 );
 
 CREATE TABLE availability_slot(
@@ -35,8 +37,8 @@ CREATE TABLE availability_slot(
     end_slot TIMESTAMP NOT NULL,
     avail_request_id INTEGER NOT NULL,
     member_id INTEGER NOT NULL, 
-    FOREIGN KEY (avail_request_id) REFERENCES availability_request (avail_request_id),
-    FOREIGN KEY (member_id) REFERENCES member (org_id)
+    FOREIGN KEY (avail_request_id) REFERENCES availability_request (avail_request_id) ON DELETE CASCADE, 
+    FOREIGN KEY (member_id) REFERENCES member (member_id) ON DELETE CASCADE
 );
 
 CREATE TABLE booked_date(
@@ -47,23 +49,23 @@ CREATE TABLE booked_date(
     timezone TEXT NOT NULL,
     org_id INTEGER NOT NULL,
     avail_request_id INTEGER,
-    FOREIGN KEY (org_id) REFERENCES organization (org_id),
-    FOREIGN KEY (avail_request_id) REFERENCES availability_request (avail_request_id)
+    FOREIGN KEY (org_id) REFERENCES organization (org_id) ON DELETE CASCADE,
+    FOREIGN KEY (avail_request_id) REFERENCES availability_request (avail_request_id) ON DELETE SET NULL
 );
 
 CREATE TABLE member_request(
     member_id INTEGER,
     avail_request_id INTEGER,
     answered BIT DEFAULT FALSE,
-    FOREIGN KEY (member_id) REFERENCES member (member_id),
-    FOREIGN KEY (avail_request_id) REFERENCES availability_request (avail_request_id),
+    FOREIGN KEY (member_id) REFERENCES member (member_id) ON DELETE CASCADE,
+    FOREIGN KEY (avail_request_id) REFERENCES availability_request (avail_request_id) ON DELETE CASCADE,
     PRIMARY KEY (member_id, avail_request_id)
 );
 
 CREATE TABLE roster(
     org_id INTEGER,
     member_id INTEGER,
-    FOREIGN KEY (org_id) REFERENCES organization (org_id),
-    FOREIGN KEY (member_id) REFERENCES member (member_id),
+    FOREIGN KEY (org_id) REFERENCES organization (org_id) ON DELETE CASCADE,
+    FOREIGN KEY (member_id) REFERENCES member (member_id) ON DELETE CASCADE,
     PRIMARY KEY (org_id, member_id)
 );

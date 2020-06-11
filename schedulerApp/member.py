@@ -7,6 +7,9 @@ from schedulerApp.auth import login_required
 from schedulerApp.db import get_db
 
 from schedulerApp.query_db import get_avail_requests_data, get_member_booked_dates
+from schedulerApp.update_db import (
+    delete_old_availability_requests_by_member, delete_old_booked_dates_by_member
+)
 
 bp = Blueprint('member', __name__)
 
@@ -33,8 +36,13 @@ def index():
             )
             ''', 
             (member_id,)
-        ).fetchall()
+        ).fetchall()        
 
+        # delete old avail requests and booked dates
+        delete_old_availability_requests_by_member(member_id)
+        delete_old_booked_dates_by_member(member_id)
+
+        # get data to be displayed         
         avail_requests = get_avail_requests_data(member_id)
         booked_dates = get_member_booked_dates(member_id)
 

@@ -23,7 +23,9 @@ from schedulerApp.update_db import(
     insert_availability_request,
     insert_availability_slot, 
     insert_booked_date, 
-    check_if_complete
+    check_if_complete,
+    delete_old_availability_requests_by_org,
+    delete_old_booked_dates_by_org
 )
 
 from schedulerApp.query_db import(
@@ -67,10 +69,16 @@ def org_page(org_id):
         (org_id,)
     ).fetchall()
 
+    # delete old avail_requests and booked dates
+    delete_old_availability_requests_by_org(1)
+    delete_old_booked_dates_by_org(1)
+
+    # get data to be displayed
     org_avail_requests = get_org_avail_requests(org_id)
     org_booked_dates = get_org_booked_dates(org_id)
 
     if request.method == 'POST':
+
         #get availability request data from form
         tz = request.form['tz']
         avail_request_name = request.form['avail_request_name']
@@ -152,11 +160,19 @@ def avail_request(avail_request_id):
         start_time = request.form['start_time']
         end_date = request.form['end_date']
         end_time = request.form['end_time']
+        timezone = avail_request['tz']
 
         error = validate_start_and_end_input(start_date, start_time, end_date, end_time)
 
         if error is None:
-            insert_availability_slot(avail_request_id, start_date, start_time, end_date, end_time)
+            insert_availability_slot(
+                avail_request_id, 
+                start_date, 
+                start_time, 
+                end_date, 
+                end_time, 
+                timezone
+            )
             flash("Availability slot added, add another?")
             if check_if_complete(avail_request_id):
                 flash("Request complete! Ready to book")
@@ -192,11 +208,12 @@ def book(avail_request_id):
         start_time = request.form['start_time']
         end_date = request.form['end_date']
         end_time = request.form['end_time']
+        timezone = avail_request['tz']
 
         error = validate_start_and_end_input(start_date, start_time, end_date, end_time)
 
         if error is None:
-            insert_booked_date(avail_request_id, start_date, start_time, end_date, end_time)
+            insert_booked_date(avail_request_id, start_date, start_time, end_date, end_time, timezone)
             flash("Date booked!")
             return redirect(url_for('index', org_id = avail_request['org_id']))
         else:

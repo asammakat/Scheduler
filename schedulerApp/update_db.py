@@ -1,16 +1,16 @@
 from flask import session
+from datetime import datetime
 
 from schedulerApp.db import get_db
 from schedulerApp.util import return_datetime
 
-
-def insert_booked_date(avail_request_id, start_date, start_time, end_date, end_time):
+def insert_booked_date(avail_request_id, start_date, start_time, end_date, end_time, timezone):
     '''insert a booked_date into the database'''
     db = get_db()
 
     # get datetime objects for the start and end
-    start_book = return_datetime(start_date, start_time)
-    end_book = return_datetime(end_date, end_time)    
+    start_book = return_datetime(start_date, start_time, timezone)
+    end_book = return_datetime(end_date, end_time, timezone)    
 
     # get timezone, org_id, and avail_request_name from avail_request
     # these fields are all carried over into the booked date
@@ -39,13 +39,13 @@ def insert_booked_date(avail_request_id, start_date, start_time, end_date, end_t
     )
     db.commit()
 
-def insert_availability_slot(avail_request_id, start_date, start_time, end_date, end_time):
+def insert_availability_slot(avail_request_id, start_date, start_time, end_date, end_time, timezone):
     '''insert an availability slot into the database'''
 
     db = get_db()
     # get datetime objects for start and end
-    start_slot = return_datetime(start_date, start_time)
-    end_slot = return_datetime(end_date, end_time)
+    start_slot = return_datetime(start_date, start_time, timezone)
+    end_slot = return_datetime(end_date, end_time, timezone)
 
     # insert new availability slot into the database
     db.execute(
@@ -74,8 +74,8 @@ def insert_availability_request(
     '''insert an availability request into the database'''
     db = get_db()
     # get datetime objects for start and end
-    start_request = return_datetime(start_date, start_time)
-    end_request = return_datetime(end_date, end_time)
+    start_request = return_datetime(start_date, start_time, tz)
+    end_request = return_datetime(end_date, end_time, tz)
 
     # insert new avaiability request into the database
     db.execute(
@@ -137,3 +137,82 @@ def check_if_complete(avail_request_id):
     )
     db.commit()
     return True
+
+def delete_old_availability_requests_by_member(member_id):
+    '''delete all of the availability requests associated with a member that are
+    older than datatime.utcnow()'''
+    db = get_db()
+
+    db.execute(
+        '''
+        DELETE FROM availability_request 
+        WHERE availability_request.avail_request_id 
+        IN (
+            SELECT member_request.avail_request_id 
+            FROM member_request
+            WHERE member_request.member_id = ?
+        )
+        AND availability_request.end_request < ?
+        ''',
+        (member_id, datetime.utcnow())
+    )
+
+    db.commit()
+
+def delete_old_availability_requests_by_org(org_id):
+    '''delete all availability requests associated with an organization that are older than
+    datetime.utcnow()'''
+    db = get_db()
+
+    db.execute(
+        '''
+        DELETE FROM availability_request 
+        WHERE availability_request.avail_request_id 
+        IN (
+            SELECT availability_request.avail_request_id
+            FROM availability_request
+            WHERE availability_request.org_id = ?
+        )
+        AND availability_request.end_request < ?
+        ''',
+        (org_id, datetime.utcnow())
+    )
+
+    db.commit()    
+
+def delete_old_booked_dates_by_member(member_id):
+    '''delete all booked dates associated with a member that are older than 
+    datetime.utcnow()'''
+    db = get_db()
+
+    db.execute(
+        '''
+        DELETE FROM booked_date
+        WHERE booked_date.org_id
+        IN (
+            SELECT roster.org_id 
+            FROM roster
+            WHERE roster.member_id = ? 
+        )
+        AND booked_date.end_time < ?
+        ''',
+        (member_id, datetime.utcnow())
+    )
+
+    db.commit()
+
+def delete_old_booked_dates_by_org(org_id):
+    '''delete alll booked dates associated with an organization 
+    that are older than datetime.utcnow()'''
+    db = get_db()
+
+    db.execute(
+        '''
+        DELETE FROM booked_date
+        WHERE booked_date.org_id = ?
+        AND booked_date.end_time < ?
+        ''',
+        (org_id, datetime.utcnow())
+    )
+
+    db.commit()
