@@ -96,7 +96,7 @@ class AuthActions(object):
         )
     
     def book(
-        self,        
+        self, 
         start_date='1/1/2030', 
         start_time='10:00a', 
         end_date='1/1/2030', 

@@ -43,7 +43,7 @@ def return_time_values(time):
     result['minute'] = minute 
     return result
 
-def return_datetime(date_string, time_string, timezone):
+def return_datetime(date_string, time_string, timezone='utc'):
     ''' take a formatted date string and a formatted time string and return
     a datetime object from them '''
     #dates are returned as a dict with 'day', 'month' and 'year' keys

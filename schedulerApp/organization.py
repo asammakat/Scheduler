@@ -8,7 +8,11 @@ from werkzeug.exceptions import abort
 from schedulerApp.auth import login_required
 from schedulerApp.db import get_db
 
-from schedulerApp.util import return_date_values, return_time_values, return_datetime
+from schedulerApp.util import(
+     return_date_values, 
+     return_time_values, 
+     return_datetime
+)
 
 from schedulerApp.validate import (
     validate_date, 
@@ -16,7 +20,8 @@ from schedulerApp.validate import (
     validate_availability_request_input, 
     validate_start_and_end_input,
     check_org_membership, 
-    check_avail_request_membership
+    check_avail_request_membership,
+    validate_time_slot    
 )
 
 from schedulerApp.update_db import(
@@ -163,6 +168,18 @@ def avail_request(avail_request_id):
         timezone = avail_request['tz']
 
         error = validate_start_and_end_input(start_date, start_time, end_date, end_time)
+
+        if error is None:
+            error = validate_time_slot(
+                avail_request['start'], 
+                avail_request['end'], 
+                start_date,
+                start_time,
+                end_date,
+                end_time,
+            )
+
+            print("DEBUG: ", error)
 
         if error is None:
             insert_availability_slot(

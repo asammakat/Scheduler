@@ -1,7 +1,9 @@
 import re
+from datetime import datetime
 
 from flask import session
 from schedulerApp.db import get_db
+from schedulerApp.util import return_datetime
 
 
 
@@ -52,6 +54,8 @@ def validate_availability_request_input(
         error = "There was a problem with your end time input"
     elif tz == '':
         error = "Timezone is required"
+    elif not validate_start_before_end(start_date, start_time, end_date, end_time):
+        error = "Start must be before end"
     else:
         error = None
     return error   
@@ -65,10 +69,49 @@ def validate_start_and_end_input(start_date, start_time, end_date, end_time):
     elif not validate_date(end_date):
         error = "There was a problem with your end date input"
     elif not validate_time(end_time):
-        error = "There was a problem with your end time input"   
+        error = "There was a problem with your end time input" 
+    elif not validate_start_before_end(start_date, start_time, end_date, end_time):
+        error = "Start must be before end" 
     else:
         error = None 
     return error    
+
+def validate_time_slot(
+    avail_request_start, #formatted datetime string
+    avail_request_end,   #formatted datetime string
+    start_slot_date, 
+    start_slot_time, 
+    end_slot_date, 
+    end_slot_time 
+):
+    #get datetimes for the start and end of the availability_slot
+    start_slot_datetime = return_datetime(start_slot_date, start_slot_time)
+    end_slot_datetime = return_datetime(end_slot_date, end_slot_time)
+
+    #get datetimes for the start and end of the the availability request
+    avail_request_start_datetime = datetime.strptime(avail_request_start, "%m/%d/%Y %I:%M%p")
+    avail_request_end_datetime = datetime.strptime(avail_request_end, "%m/%d/%Y %I:%M%p")
+
+    print("SLOT START: ", start_slot_datetime)
+    print("AR START: ", avail_request_start_datetime)
+    print("SLOT END: ", end_slot_datetime)
+    print("AR END: ", avail_request_end_datetime)
+
+    if start_slot_datetime < avail_request_start_datetime:
+        return "availability slot cannot start before the availability request"
+    elif end_slot_datetime > avail_request_end_datetime:
+        return "avaiability slot cannot end after the availability request"
+    else:
+        return None
+    
+def validate_start_before_end(start_date, start_time, end_date, end_time):
+    start_datetime = return_datetime(start_date, start_time)
+    end_datetme = return_datetime(end_date, end_time)
+
+    if end_datetme < start_datetime:
+        return False
+    else:
+        return True
 
 def check_org_membership(org_id):
     '''check if a member is in an organization'''

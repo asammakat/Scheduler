@@ -39,10 +39,11 @@ def test_org_page(auth, client, app):
 @pytest.mark.parametrize(('avail_request_name', 'start_date', 'start_time', 'end_date', 'end_time', 'tz', 'message'),(
     ('', '1/1/2030', '1:30a', '1/1/2030', '2:00p', 'UTC', b"A name is required"),
     ('testAR', '', '1:30a', '1/1/2030', '2:00p', 'UTC', b"There was a problem with your start date input"),
-    ('testAR','1/1/2030', '', '1/1/2030', '2:00p', 'UTC', b"There was a problem with your start time input"),
-    ('testAR','1/1/2030', '1:30a', '', '2:00p', 'UTC', b"There was a problem with your end date input"),
-    ('testAR','1/1/2030', '1:30a', '1/1/2030', '', 'UTC', b"There was a problem with your end time input"),
-    ('testAR','1/1/2030', '1:30a', '1/1/2030', '2:00p', '', b"Timezone is required")
+    ('testAR', '1/1/2030', '', '1/1/2030', '2:00p', 'UTC', b"There was a problem with your start time input"),
+    ('testAR', '1/1/2030', '1:30a', '', '2:00p', 'UTC', b"There was a problem with your end date input"),
+    ('testAR', '1/1/2030', '1:30a', '1/1/2030', '', 'UTC', b"There was a problem with your end time input"),
+    ('testAR', '1/1/2030', '1:30a', '1/1/2030', '2:00p', '', b"Timezone is required"),
+    ('testAR', '1/1/2030', '2:00p', '1/1/2030', '1:30a', 'UTC', b"Start must be before end")
 ))
 def test_org_page_validate_input(avail_request_name, start_date, start_time, end_date, end_time, tz, message, auth):
     auth.login()
@@ -105,7 +106,11 @@ def test_avail_request(auth, client, app):
     ('', '1:30a', '1/1/2030', '2:00p', b"There was a problem with your start date input"),
     ('1/1/2030', '', '1/1/2030', '2:00p', b"There was a problem with your start time input"),
     ('1/1/2030', '1:30a', '', '2:00p', b"There was a problem with your end date input"),
-    ('1/1/2030', '1:30a', '1/1/2030', '', b"There was a problem with your end time input")
+    ('1/1/2030', '1:30a', '1/1/2030', '', b"There was a problem with your end time input"),
+    ('1/1/2030', '2:00p', '1/1/2030', '1:30a', b"Start must be before end"),
+    ('1/1/2019', '1:30a', '1/1/2030', '2:00p', b"availability slot cannot start before the availability request"),
+    ('1/1/2030', '1:30a', '1/1/2050', '2:00p', b"avaiability slot cannot end after the availability request")
+
 ))
 def test_avail_request_validate_input(start_date, start_time, end_date, end_time, message, auth):
     auth.login()
@@ -148,7 +153,8 @@ def test_book(auth, client, app):
     ('', '1:30a', '1/1/2030', '2:00p', b"There was a problem with your start date input"),
     ('1/1/2030', '', '1/1/2030', '2:00p', b"There was a problem with your start time input"),
     ('1/1/2030', '1:30a', '', '2:00p', b"There was a problem with your end date input"),
-    ('1/1/2030', '1:30a', '1/1/2030', '', b"There was a problem with your end time input")
+    ('1/1/2030', '1:30a', '1/1/2030', '', b"There was a problem with your end time input"),
+    ('1/1/2030', '2:00p', '1/1/2030', '1:30a', b"Start must be before end")
 ))
 def test_book_validate_input(start_date, start_time, end_date, end_time, message, auth):
     auth.login()
