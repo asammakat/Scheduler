@@ -1,5 +1,3 @@
--- PRAGMA FOREIGN_KEYS = ON;
-
 DROP TABLE IF EXISTS member_request;
 DROP TABLE IF EXISTS roster;
 DROP TABLE IF EXISTS booked_date;

@@ -6,7 +6,7 @@ from werkzeug.exceptions import abort
 from schedulerApp.auth import login_required
 from schedulerApp.db import get_db
 
-from schedulerApp.query_db import get_avail_requests_data, get_member_booked_dates
+from schedulerApp.query_db import get_avail_requests_data, get_member_booked_dates, get_member_orgs
 from schedulerApp.update_db import (
     delete_old_availability_requests_by_member, delete_old_booked_dates_by_member
 )
@@ -24,32 +24,18 @@ def index():
     member_id = session.get('member_id')
     booked_dates = None
     if member_id is not None:
-        orgs = db.execute(
-            '''
-            SELECT 
-            organization.org_name, 
-            organization.org_id 
-            FROM organization 
-            WHERE organization.org_id 
-            IN (
-                SELECT roster.org_id FROM roster WHERE member_id = ?
-            )
-            ''', 
-            (member_id,)
-        ).fetchall()        
 
         # delete old avail requests and booked dates
         delete_old_availability_requests_by_member(member_id)
         delete_old_booked_dates_by_member(member_id)
 
         # get data to be displayed         
-        avail_requests = get_avail_requests_data(member_id)
-        booked_dates = get_member_booked_dates(member_id)
+        session['avail_requests'] = get_avail_requests_data(member_id)
+        session['booked_dates'] = get_member_booked_dates(member_id)
+        session['orgs'] = get_member_orgs(member_id)
+        session.modified = True
 
     return render_template(
         'member/index.html', 
-        orgs=orgs, 
-        avail_requests=avail_requests, 
-        booked_dates=booked_dates
     )
 

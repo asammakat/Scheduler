@@ -30,14 +30,17 @@ from schedulerApp.update_db import(
     insert_booked_date, 
     check_if_complete,
     delete_old_availability_requests_by_org,
-    delete_old_booked_dates_by_org
+    delete_old_booked_dates_by_org, 
+    delete_availability_request,
 )
 
 from schedulerApp.query_db import(
     get_avail_request, 
-    get_member_info,
+    get_member_responses,
     get_org_avail_requests, 
-    get_org_booked_dates
+    get_org_booked_dates,
+    get_org_info,
+    get_roster
 )
 
 bp = Blueprint('organization', __name__)  
@@ -55,32 +58,24 @@ def org_page(org_id):
         return redirect(url_for('index'))
 
     # get data from the organization
-    org = db.execute(
-        'SELECT * FROM organization WHERE org_id = ?',
-        (org_id,)
-    ).fetchone()
-
-    roster = db.execute(
-        '''
-        SELECT member.username 
-        FROM member
-        WHERE member.member_id 
-        IN(
-            SELECT roster.member_id
-            FROM roster
-            WHERE roster.org_id = ?
-        )
-        ''',
-        (org_id,)
-    ).fetchall()
+    session['active_org'] = get_org_info(org_id)
+    session['roster'] = get_roster(org_id)
 
     # delete old avail_requests and booked dates
-    delete_old_availability_requests_by_org(1)
-    delete_old_booked_dates_by_org(1)
+    delete_old_availability_requests_by_org(org_id)
+    delete_old_booked_dates_by_org(org_id)
 
     # get data to be displayed
-    org_avail_requests = get_org_avail_requests(org_id)
-    org_booked_dates = get_org_booked_dates(org_id)
+    session['org_avail_requests'] = get_org_avail_requests(org_id)
+    session['org_booked_dates'] = get_org_booked_dates(org_id)
+    # NOTE: At the moment grabbing this information is redundant because all of 
+    # the availability requests for this organization is stored in 
+    # session['availability_request'] and session['booked_dates']. However we are 
+    # getting this information seperately both because it is organizationally consistent 
+    # with the organization of the app and because in the future we might have a scenario 
+    # where we want there to be availability requests and booked dates that 
+    # do not include all members of an organization    
+    session.modified = True
 
     if request.method == 'POST':
 
@@ -121,11 +116,7 @@ def org_page(org_id):
             flash(error) 
     return render_template(
         'organization/org_page.html/', 
-        roster=roster, 
-        org=org, 
         common_timezones=common_timezones,
-        org_avail_requests=org_avail_requests,
-        org_booked_dates=org_booked_dates
     )
 
 @bp.route('/<int:avail_request_id>/avail_request', methods=('GET', 'POST'))
@@ -140,7 +131,7 @@ def avail_request(avail_request_id):
         flash("You are not in the organization that has this availability request")
         return redirect(url_for('index'))   
 
-    avail_request = get_avail_request(avail_request_id)
+    session['active_avail_request'] = get_avail_request(avail_request_id)
 
     # get list of dicts containing each member in the organization's information
     # regarding the availabiity request 
@@ -158,28 +149,27 @@ def avail_request(avail_request_id):
     #   },
     #   {...}
     # ]
-    members = get_member_info(avail_request_id)    
+    session['member_responses'] = get_member_responses(avail_request_id)  
+    session.modified = True  
 
     if request.method == 'POST':
         start_date = request.form['start_date']
         start_time = request.form['start_time']
         end_date = request.form['end_date']
         end_time = request.form['end_time']
-        timezone = avail_request['tz']
+        timezone = session['active_avail_request']['tz']
 
         error = validate_start_and_end_input(start_date, start_time, end_date, end_time)
 
         if error is None:
             error = validate_time_slot(
-                avail_request['start'], 
-                avail_request['end'], 
+                session['active_avail_request']['start'], 
+                session['active_avail_request']['end'], 
                 start_date,
                 start_time,
                 end_date,
                 end_time,
             )
-
-            print("DEBUG: ", error)
 
         if error is None:
             insert_availability_slot(
@@ -190,6 +180,22 @@ def avail_request(avail_request_id):
                 end_time, 
                 timezone
             )
+            # TODO:  make this a function
+##################################### make this a function #########################################
+            start_datetime = return_datetime(start_date, start_time).strftime("%-m/%-d/%Y %-I:%M%p")
+            end_datetime = return_datetime(end_date, end_time).strftime("%-m/%-d/%Y %-I:%M%p")
+
+            for response in session['member_responses']:
+                if response['member_id'] == session['member_id']:
+                    response['answered'] = 1
+                    response['avail_slots'].append(
+                        {
+                            'start_time': start_datetime,
+                            'end_time': end_datetime
+                        }
+                    )
+####################################################################################################
+            session.modified = True
             flash("Availability slot added, add another?")
             if check_if_complete(avail_request_id):
                 flash("Request complete! Ready to book")
@@ -199,9 +205,19 @@ def avail_request(avail_request_id):
 
     return render_template(
         'organization/avail_request.html/', 
-        avail_request=avail_request,
-        members=members,
         avail_request_id=avail_request_id
+    )
+
+@bp.route('/<int:avail_request_id>/delete_avail_request')
+@login_required
+def delete_avail_request(avail_request_id):
+    '''Allow a user to delete an availability request'''
+    delete_availability_request(avail_request_id, session['active_org']['org_id'])
+    flash("availability request deleted")
+    # return the user to the home page
+    return render_template(
+        'organization/org_page.html/', 
+        common_timezones=common_timezones,
     )
 
 @bp.route('/<int:avail_request_id>/book', methods=('GET', 'POST'))
@@ -215,25 +231,27 @@ def book(avail_request_id):
     if check_avail_request_membership(avail_request_id) == False:
         flash("You are not in the organization that has this availability request")
         return redirect(url_for('index'))   
-    
+
     # get the data from the database to be displayed 
-    avail_request = get_avail_request(avail_request_id)
-    members = get_member_info(avail_request_id)
+    if 'active_avail_request' not in session.keys():
+        session['active_avail_request'] = get_avail_request(avail_request_id)
+        session['member_responses'] = get_member_responses(avail_request_id)    
 
     if request.method == 'POST':
         start_date = request.form['start_date']
         start_time = request.form['start_time']
         end_date = request.form['end_date']
         end_time = request.form['end_time']
-        timezone = avail_request['tz']
+        timezone = session['active_avail_request']['tz']
 
         error = validate_start_and_end_input(start_date, start_time, end_date, end_time)
 
         if error is None:
             insert_booked_date(avail_request_id, start_date, start_time, end_date, end_time, timezone)
             flash("Date booked!")
-            return redirect(url_for('index', org_id = avail_request['org_id']))
+            return redirect(url_for('index', org_id = session['active_avail_request']['org_id']))
         else:
             flash(error)
 
-    return render_template('organization/book.html', avail_request=avail_request, members=members)
+    return render_template('organization/book.html', avail_request_id=avail_request_id)
+

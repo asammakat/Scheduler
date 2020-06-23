@@ -133,7 +133,6 @@ def test_book(auth, client, app):
     assert b'testAR' in response.data
     assert b"Available from 1/1/2030 10:00AM until 1/1/2030 1:00PM" in response.data
 
-
     response = client.get(
         '/99/book'
     )  
@@ -166,3 +165,28 @@ def test_book_validate_input(start_date, start_time, end_date, end_time, message
         end_time=end_time,
     )
     assert message in response.data
+
+def test_delete_availability_request(auth, client, app):
+    auth.login()
+    auth.make_avail_request()
+    assert client.get('/1/avail_request').status_code == 200
+
+    with app.app_context():
+        db = get_db()        
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM availability_request 
+            WHERE availability_request.avail_request_id = 1
+            '''
+        ).fetchone() is not None
+
+        assert client.get('1/delete_avail_request').status_code == 200     
+
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM availability_request 
+            WHERE availability_request.avail_request_id = 1
+            '''
+        ).fetchone() is None

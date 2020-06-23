@@ -11,7 +11,7 @@
         <a class="action" href="{{ url_for('auth.register_org') }}">Register a new organization</a>
         <a class="action" href="{{ url_for('auth.add_to_roster') }}">Join an organization</a>
         <h1>Your Availability Requests: </h1>
-        {% for avail_request in avail_requests %}
+        {% for avail_request in session['avail_requests'] %}
           <a class="action" href="{{ url_for('organization.avail_request', avail_request_id=avail_request['avail_request_id']) }}">
               {{ avail_request['avail_request_name'] }}
           </a>
@@ -22,18 +22,18 @@
           <br>
         {% endfor %}
         <h1>Your booked dates: </h1>
-        {% for date in booked_dates%}
+        {% for date in session['booked_dates']%}
           {{ date['booked_date_name'] }} 
           in {{ date['timezone'] }} 
           from {{ date['start_time'].strftime("%-m/%-d/%Y %-I:%M%p") }} 
           until {{ date['end_time'].strftime("%-m/%-d/%Y %-I:%M%p") }}
         {% endfor %}
         <h1>Your Organizations: </h1>
-        {% for org in orgs %}
+        {% for org in session['orgs'] %}
           <article class="post">
             <header>
               <div>
-                <a class="action" href="{{ url_for('organization.org_page', org_id=org[1]) }}">{{ org[0] }}</a>
+                <a class="action" href="{{ url_for('organization.org_page', org_id=org['org_id']) }}">{{ org['org_name'] }}</a>
               </div>
             </header>
           </article>

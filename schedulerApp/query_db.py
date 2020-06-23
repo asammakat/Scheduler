@@ -3,11 +3,44 @@ from flask import session
 from schedulerApp.db import get_db
 from schedulerApp.util import convert_datetime_to_user_tz
 
+def get_member_orgs(member_id):
+    '''create a lis of dicts with information from all of the organizations a member
+    belongs to to be displayed on the home page. Each dict contains the keys
+    'org_name' and 'org_id' '''
+
+    db = get_db()
+
+    orgs_from_db = db.execute(
+        '''
+        SELECT 
+        organization.org_name, 
+        organization.org_id 
+        FROM organization 
+        WHERE organization.org_id 
+        IN (
+            SELECT roster.org_id FROM roster WHERE member_id = ?
+        )
+        ''', 
+        (member_id,)
+    ).fetchall()
+
+    orgs = []
+
+    for o in orgs_from_db:
+        org = {}
+
+        org['org_name'] = o[0]
+        org['org_id'] = o[1]  
+
+        orgs.append(org)
+    
+    return orgs
 
 def get_member_booked_dates(member_id):
     '''create a list of dicts with information from all of the booked dates for a member
     to be displayed of the home page of that member. Each dict contains the keys
-    'booked_date_name, 'start_time', 'end_time', and 'timezone'''
+    'booked_date_name, 'start_time', 'end_time', and 'timezone' get'''
+
     db = get_db()
 
     member_booked_dates_from_db = db.execute(
@@ -44,6 +77,45 @@ def get_member_booked_dates(member_id):
         member_booked_dates.append(member_booked_date)
     
     return member_booked_dates
+
+def get_org_info(org_id):
+    db = get_db()
+
+    org_from_db = db.execute(
+        '''SELECT organization.org_id, organization.org_name 
+        FROM organization WHERE org_id = ?''',
+        (org_id,)
+    ).fetchone()
+
+    org = {}
+    org['org_id'] = org_from_db[0]
+    org['org_name'] = org_from_db[1]
+
+    return org
+
+def get_roster(org_id):
+    db = get_db()
+    
+    roster_from_db = db.execute(
+        '''
+        SELECT member.username 
+        FROM member
+        WHERE member.member_id 
+        IN(
+            SELECT roster.member_id
+            FROM roster
+            WHERE roster.org_id = ?
+        )
+        ''',
+        (org_id,)
+    ).fetchall()
+
+    roster = []
+
+    for r in roster_from_db:
+        roster.append(r[0])
+    
+    return roster
 
 def get_org_avail_requests(org_id):
     '''create a list of dicts containing information from all of the 
@@ -156,7 +228,8 @@ def get_avail_request(avail_request_id):
            availability_request.start_request,
            availability_request.end_request,
            availability_request.timezone,
-           availability_request.org_id
+           availability_request.org_id,
+           availability_request.avail_request_id
            FROM availability_request
            WHERE avail_request_id = ?''',
            (avail_request_id,)
@@ -174,6 +247,7 @@ def get_avail_request(avail_request_id):
     avail_request['end'] = end_time.strftime("%-m/%-d/%Y %-I:%M%p")
     avail_request['tz'] = timezone 
     avail_request['org_id'] = avail_request_from_db[4]
+    avail_request['avail_request_id'] = avail_request_from_db[5]
 
     return avail_request  
 
@@ -245,13 +319,13 @@ def get_avail_requests_data(member_id):
         avail_requests.append(request_data)
     return avail_requests
 
-def get_member_info(avail_request_id):
+def get_member_responses(avail_request_id):
     '''Build a list of dicts of all of the usernames, their answered status, 
     and the start and end times of any availability slots they have created 
     in association with a particular availability request to be displayed on 
     the availability request page and the book page.'''
     db = get_db()
-    members = []
+    members = [] #TODO: should this not be a list? 
 
     # get timzone of the avail request to convert avail_slot times from UTC
     timezone = db.execute(
@@ -275,6 +349,9 @@ def get_member_info(avail_request_id):
 
     for r in roster:
         member = {}
+
+        member['member_id'] = r[0]
+
         #get the member's username
         username = db.execute(
             '''

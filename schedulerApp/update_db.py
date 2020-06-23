@@ -1,8 +1,9 @@
-from flask import session
+from flask import session, Flask, redirect, flash, url_for
 from datetime import datetime
 
 from schedulerApp.db import get_db
 from schedulerApp.util import return_datetime
+from schedulerApp.query_db import get_org_avail_requests
 
 def insert_booked_date(avail_request_id, start_date, start_time, end_date, end_time, timezone):
     '''insert a booked_date into the database'''
@@ -137,6 +138,22 @@ def check_if_complete(avail_request_id):
     )
     db.commit()
     return True
+
+def delete_availability_request(avail_request_id, org_id):
+    '''delete an availability request from the database and update
+    session'''
+    db = get_db()
+    db.execute(
+        '''
+        DELETE FROM availability_request
+        WHERE availability_request.avail_request_id = ?
+        ''',
+        (avail_request_id,)
+    )
+    db.commit()
+
+    session['org_avail_requests'] = get_org_avail_requests(org_id)
+    session.modified = True
 
 def delete_old_availability_requests_by_member(member_id):
     '''delete all of the availability requests associated with a member that are
