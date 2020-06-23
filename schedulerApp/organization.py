@@ -29,8 +29,8 @@ from schedulerApp.update_db import(
     insert_availability_slot, 
     insert_booked_date, 
     check_if_complete,
-    delete_old_availability_requests_by_org,
-    delete_old_booked_dates_by_org, 
+    update_availability_requests_by_org,
+    update_booked_dates_by_org, 
     delete_availability_request,
 )
 
@@ -61,13 +61,11 @@ def org_page(org_id):
     session['active_org'] = get_org_info(org_id)
     session['roster'] = get_roster(org_id)
 
-    # delete old avail_requests and booked dates
-    delete_old_availability_requests_by_org(org_id)
-    delete_old_booked_dates_by_org(org_id)
+    # delete old avail_requests and booked dates and get session data
+    update_availability_requests_by_org(org_id)
+    update_booked_dates_by_org(org_id)
 
-    # get data to be displayed
-    session['org_avail_requests'] = get_org_avail_requests(org_id)
-    session['org_booked_dates'] = get_org_booked_dates(org_id)
+
     # NOTE: At the moment grabbing this information is redundant because all of 
     # the availability requests for this organization is stored in 
     # session['availability_request'] and session['booked_dates']. However we are 
@@ -75,7 +73,6 @@ def org_page(org_id):
     # with the organization of the app and because in the future we might have a scenario 
     # where we want there to be availability requests and booked dates that 
     # do not include all members of an organization    
-    session.modified = True
 
     if request.method == 'POST':
 
@@ -180,22 +177,7 @@ def avail_request(avail_request_id):
                 end_time, 
                 timezone
             )
-            # TODO:  make this a function
-##################################### make this a function #########################################
-            start_datetime = return_datetime(start_date, start_time).strftime("%-m/%-d/%Y %-I:%M%p")
-            end_datetime = return_datetime(end_date, end_time).strftime("%-m/%-d/%Y %-I:%M%p")
 
-            for response in session['member_responses']:
-                if response['member_id'] == session['member_id']:
-                    response['answered'] = 1
-                    response['avail_slots'].append(
-                        {
-                            'start_time': start_datetime,
-                            'end_time': end_datetime
-                        }
-                    )
-####################################################################################################
-            session.modified = True
             flash("Availability slot added, add another?")
             if check_if_complete(avail_request_id):
                 flash("Request complete! Ready to book")
@@ -211,10 +193,10 @@ def avail_request(avail_request_id):
 @bp.route('/<int:avail_request_id>/delete_avail_request')
 @login_required
 def delete_avail_request(avail_request_id):
-    '''Allow a user to delete an availability request'''
-    delete_availability_request(avail_request_id, session['active_org']['org_id'])
+    '''Allow user to delete an availability request'''
+    delete_availability_request(avail_request_id)
     flash("availability request deleted")
-    # return the user to the home page
+    # return user to the home page
     return render_template(
         'organization/org_page.html/', 
         common_timezones=common_timezones,

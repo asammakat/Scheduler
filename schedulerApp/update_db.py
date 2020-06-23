@@ -3,8 +3,12 @@ from datetime import datetime
 
 from schedulerApp.db import get_db
 from schedulerApp.util import return_datetime
-from schedulerApp.query_db import get_org_avail_requests
-
+from schedulerApp.query_db import(
+    get_org_avail_requests, 
+    get_avail_requests_data, 
+    get_member_booked_dates, 
+    get_org_booked_dates
+) 
 def insert_booked_date(avail_request_id, start_date, start_time, end_date, end_time, timezone):
     '''insert a booked_date into the database'''
     db = get_db()
@@ -40,9 +44,13 @@ def insert_booked_date(avail_request_id, start_date, start_time, end_date, end_t
     )
     db.commit()
 
+    # update session data
+    session['booked_dates'] = get_member_booked_dates(session['member_id'])
+    session['org_booked_dates'] = get_org_booked_dates(session['active_org']['org_id'])
+    session.modified = True
+
 def insert_availability_slot(avail_request_id, start_date, start_time, end_date, end_time, timezone):
     '''insert an availability slot into the database'''
-
     db = get_db()
     # get datetime objects for start and end
     start_slot = return_datetime(start_date, start_time, timezone)
@@ -62,6 +70,21 @@ def insert_availability_slot(avail_request_id, start_date, start_time, end_date,
         (session['member_id'], avail_request_id,)
     )
     db.commit()
+
+    # update session data 
+    start_datetime = return_datetime(start_date, start_time).strftime("%-m/%-d/%Y %-I:%M%p")
+    end_datetime = return_datetime(end_date, end_time).strftime("%-m/%-d/%Y %-I:%M%p")
+
+    for response in session['member_responses']:
+        if response['member_id'] == session['member_id']:
+            response['answered'] = 1
+            response['avail_slots'].append(
+                {
+                    'start_time': start_datetime,
+                    'end_time': end_datetime
+                }
+            )
+    session.modified = True    
 
 def insert_availability_request(
             org_id,
@@ -113,6 +136,11 @@ def insert_availability_request(
         )
     db.commit()
 
+    #update session data
+    session['avail_requests'] = get_avail_requests_data(session['member_id'])
+    session['org_avail_requests'] = get_org_avail_requests(session['active_org']['org_id'])
+    session.modified = True
+
 def check_if_complete(avail_request_id):
     ''' check if an availability request has been answered by all
     members of its associated organization. '''
@@ -139,7 +167,7 @@ def check_if_complete(avail_request_id):
     db.commit()
     return True
 
-def delete_availability_request(avail_request_id, org_id):
+def delete_availability_request(avail_request_id):
     '''delete an availability request from the database and update
     session'''
     db = get_db()
@@ -152,14 +180,18 @@ def delete_availability_request(avail_request_id, org_id):
     )
     db.commit()
 
-    session['org_avail_requests'] = get_org_avail_requests(org_id)
+    # update session data
+    session['avail_requests'] = get_avail_requests_data(session['member_id'])
+    session['org_avail_requests'] = get_org_avail_requests(session['active_org']['org_id'])
     session.modified = True
 
-def delete_old_availability_requests_by_member(member_id):
-    '''delete all of the availability requests associated with a member that are
-    older than datetime.utcnow()'''
+def update_availability_requests_by_member(member_id):
+    '''delete all of the availability requests associated that are
+    older than datetime.utcnow() and update the session data for all 
+    availability requests associated with a member '''
     db = get_db()
 
+    # delete old availability requests
     db.execute(
         '''
         DELETE FROM availability_request 
@@ -176,11 +208,19 @@ def delete_old_availability_requests_by_member(member_id):
 
     db.commit()
 
-def delete_old_availability_requests_by_org(org_id):
-    '''delete all availability requests associated with an organization that are older than
-    datetime.utcnow()'''
+    #update session data
+    session['avail_requests'] = get_avail_requests_data(member_id)
+    if session.get('active_org') is not None:
+        session['org_avail_requests'] = get_org_avail_requests(session['active_org']['org_id'])
+    session.modified = True
+
+def update_availability_requests_by_org(org_id):
+    '''delete all availability requests that are older than
+    datetime.utcnow() and update availability request session data for 
+    all availability requests associated with an organization'''
     db = get_db()
 
+    # delete old availability requests
     db.execute(
         '''
         DELETE FROM availability_request 
@@ -195,11 +235,17 @@ def delete_old_availability_requests_by_org(org_id):
         (org_id, datetime.utcnow())
     )
 
-    db.commit()    
+    db.commit()
 
-def delete_old_booked_dates_by_member(member_id):
-    '''delete all booked dates associated with a member that are older than 
-    datetime.utcnow()'''
+    #update session data
+    session['avail_requests'] = get_avail_requests_data(session['member_id'])
+    session['org_avail_requests'] = get_org_avail_requests(org_id)
+    session.modified = True
+
+def update_booked_dates_by_member(member_id):
+    '''delete all booked dates that are older than 
+    datetime.utcnow() and update the booked dates session data for 
+    all booked dates associated with a member'''
     db = get_db()
 
     debug_data = db.execute(
@@ -210,8 +256,6 @@ def delete_old_booked_dates_by_member(member_id):
         ''',
         (datetime.utcnow(),)
     ).fetchall()
-
-    print("DEBUG: ", debug_data)
 
     db.execute(
         '''
@@ -229,11 +273,19 @@ def delete_old_booked_dates_by_member(member_id):
 
     db.commit()
 
-def delete_old_booked_dates_by_org(org_id):
-    '''delete alll booked dates associated with an organization 
-    that are older than datetime.utcnow()'''
+    #update session data
+    session['booked_dates'] = get_member_booked_dates(session['member_id'])
+    if session.get('active_org') is not None:
+        session['org_booked_dates'] = get_org_booked_dates(session['active_org']['org_id'])
+    session.modified = True
+
+def update_booked_dates_by_org(org_id):
+    '''delete alll booked dates that are older than datetime.utcnow()
+    and update booked date session data for all booked dates that are
+    associated with an organization'''
     db = get_db()
 
+    # delete old booked dates
     db.execute(
         '''
         DELETE FROM booked_date
@@ -244,3 +296,8 @@ def delete_old_booked_dates_by_org(org_id):
     )
 
     db.commit()
+
+    #update session data
+    session['booked_dates'] = get_member_booked_dates(session['member_id'])
+    session['org_booked_dates'] = get_org_booked_dates(org_id)
+    session.modified = True
