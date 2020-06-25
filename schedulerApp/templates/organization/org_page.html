@@ -46,6 +46,7 @@
     {{ date['booked_date_name'] }} in {{ date['timezone'] }} 
     from {{ date['start_time'] }} 
     until {{ date['end_time'] }}
+    <a class="action" href="{{ url_for('organization.delete_booked_date_page', booked_date_id = date['booked_date_id']) }}">DELETE</a>
   {% endfor %}
 
   <h1>Create an availability request:</h1>

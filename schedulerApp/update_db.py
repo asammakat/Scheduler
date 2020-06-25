@@ -185,6 +185,24 @@ def delete_availability_request(avail_request_id):
     session['org_avail_requests'] = get_org_avail_requests(session['active_org']['org_id'])
     session.modified = True
 
+def delete_booked_date(booked_date_id):
+    '''delete a booked date from the database and update session'''
+    db = get_db()
+    db.execute(
+        '''
+        DELETE FROM booked_date
+        WHERE booked_date.booked_date_id = ?
+        ''',
+        (booked_date_id,)
+    )
+    db.commit()
+
+    # update session data
+    session['booked_dates'] = get_member_booked_dates(session['member_id'])
+    if session.get('active_org') is not None:
+        session['org_booked_dates'] = get_org_booked_dates(session['active_org']['org_id'])
+    session.modified = True
+
 def update_availability_requests_by_member(member_id):
     '''delete all of the availability requests associated that are
     older than datetime.utcnow() and update the session data for all 

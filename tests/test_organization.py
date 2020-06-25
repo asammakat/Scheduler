@@ -181,12 +181,38 @@ def test_delete_availability_request(auth, client, app):
             '''
         ).fetchone() is not None
 
-        assert client.get('1/delete_avail_request').status_code == 200     
+        assert client.get('/1/delete_avail_request').status_code == 200     
 
         assert db.execute(
             '''
             SELECT * 
             FROM availability_request 
             WHERE availability_request.avail_request_id = 1
+            '''
+        ).fetchone() is None
+
+def test_delete_booked_date(auth, client, app):
+    auth.login()
+    auth.make_avail_request()
+    auth.book()
+    assert client.get('/1/book').status_code == 200
+
+    with app.app_context():
+        db = get_db()
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM booked_date
+            WHERE booked_date.booked_date_id = 1
+            '''
+        ).fetchone() is not None
+
+        assert client.get('/1/delete_booked_date').status_code == 200
+
+        assert db.execute(
+            '''
+            SELECT *
+            FROM booked_date 
+            WHERE booked_date.booked_date_id = 1
             '''
         ).fetchone() is None

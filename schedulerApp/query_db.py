@@ -79,6 +79,7 @@ def get_member_booked_dates(member_id):
     return member_booked_dates
 
 def get_org_info(org_id):
+    '''create a dict with keys org_id and org_name'''
     db = get_db()
 
     org_from_db = db.execute(
@@ -94,6 +95,7 @@ def get_org_info(org_id):
     return org
 
 def get_roster(org_id):
+    '''get a list of all member_id's associated with an organization'''
     db = get_db()
     
     roster_from_db = db.execute(

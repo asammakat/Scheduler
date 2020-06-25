@@ -32,6 +32,7 @@ from schedulerApp.update_db import(
     update_availability_requests_by_org,
     update_booked_dates_by_org, 
     delete_availability_request,
+    delete_booked_date
 )
 
 from schedulerApp.query_db import(
@@ -192,15 +193,27 @@ def avail_request(avail_request_id):
 
 @bp.route('/<int:avail_request_id>/delete_avail_request')
 @login_required
-def delete_avail_request(avail_request_id):
+def delete_avail_request(avail_request_id): #TODO: rename to 'delete_avail_request_page'
     '''Allow user to delete an availability request'''
     delete_availability_request(avail_request_id)
     flash("availability request deleted")
-    # return user to the home page
+    # return user to the org page
     return render_template(
         'organization/org_page.html/', 
         common_timezones=common_timezones,
     )
+
+@bp.route('/<int:booked_date_id>/delete_booked_date')
+@login_required
+def delete_booked_date_page(booked_date_id):
+    '''Allow user to delete a booked date'''
+    delete_booked_date(booked_date_id)
+    flash("booked date deleted")
+    # return user to the org page
+    return render_template(
+        'organization/org_page.html/', 
+        common_timezones=common_timezones,
+    )    
 
 @bp.route('/<int:avail_request_id>/book', methods=('GET', 'POST'))
 @login_required
