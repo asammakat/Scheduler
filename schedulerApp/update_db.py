@@ -199,8 +199,7 @@ def delete_booked_date(booked_date_id):
 
     # update session data
     session['booked_dates'] = get_member_booked_dates(session['member_id'])
-    if session.get('active_org') is not None:
-        session['org_booked_dates'] = get_org_booked_dates(session['active_org']['org_id'])
+    session['org_booked_dates'] = get_org_booked_dates(session['active_org']['org_id'])
     session.modified = True
 
 def update_availability_requests_by_member(member_id):
