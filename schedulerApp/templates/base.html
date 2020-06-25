@@ -7,6 +7,11 @@
       <li><span>Hello {{ g.member[1] }}!</span>
       <li><a href="{{ url_for('auth.logout') }}">Log Out</a>
       <li><a href="{{ url_for('member.index') }}">Home</a>
+        {% for org in session['orgs'] %}
+          <li><a href="{{ url_for('organization.org_page', org_id=org['org_id']) }}">
+            {{ org['org_name'] }}
+          </a>
+        {% endfor %}
 
     {% else %}
       <li><a href="{{ url_for('auth.register') }}">Register</a>
