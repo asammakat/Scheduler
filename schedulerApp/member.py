@@ -19,10 +19,7 @@ def index():
     if a member is logged in and allows for registration and member login if 
     a member is not logged in'''
     db = get_db()
-    orgs = None
-    avail_requests = None
     member_id = session.get('member_id')
-    booked_dates = None
     if member_id is not None:
 
         # delete old avail requests and booked dates and get session data

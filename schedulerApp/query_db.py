@@ -289,17 +289,18 @@ def get_avail_requests_data(member_id):
             (avail_request_id,)
         ).fetchone()[0]
 
+
         org_name = db.execute(
             '''
             SELECT organization.org_name 
             FROM organization 
             WHERE organization.org_id
             IN(
-                SELECT organization.org_id FROM availability_request WHERE availability_request.avail_request_id = ?
+                SELECT availability_request.org_id FROM availability_request WHERE availability_request.avail_request_id = ?
             )
             ''',
             (avail_request_id,)
-        ).fetchone()[0]
+        ).fetchone()[0] #BUG getting wrong name here
 
         answered = db.execute(
             '''
