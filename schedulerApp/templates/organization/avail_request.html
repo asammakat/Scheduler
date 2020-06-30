@@ -10,15 +10,20 @@
         in {{ session['active_avail_request']['tz'] }}
     </h1>
     {% for response in session['member_responses'] %}
-      <h1>{{ response['username'] }}:</h1>
+      <h3>{{ response['username'] }}:</h3>
       {% if response['answered'] == 0 %}
-        <h1>This member has not responded</h1>
+        <h3>This member has not responded</h3>
       {% else %}
         {% for slot in response['avail_slots'] %}
-          <h1> Available from {{ slot['start_time'] }} until {{ slot['end_time'] }} </h1>
+          <h3> Available from {{ slot['start_time'] }} until {{ slot['end_time'] }} </h1>
         {% endfor %}
       {% endif %}
     <br>
+    {% endfor %}
+      
+    <h1>Current Common availability: </h1>
+    {% for date in session['dates_in_common'] %}
+      <h3>from {{ date['start_time'] }} to {{ date['end_time'] }}</h3> 
     {% endfor %}
     <h1>Add your availability: </h1>
     <form method="post">

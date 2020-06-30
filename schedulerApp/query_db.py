@@ -1,7 +1,112 @@
 from flask import session
+from datetime import datetime
 
 from schedulerApp.db import get_db
 from schedulerApp.util import convert_datetime_to_user_tz
+
+def find_dates_in_common(member_responses):
+    '''go through member responses and find the time slots compatable with 
+    all members who have so far responded'''
+    # member_responses = [
+    #   {
+    #     'name': 'name',
+    #     'answered': True/False
+    #     'avail_slots: [
+    #        {
+    #          'start_time': 'MM/DD/YYYY hh:mm[AM/PM]'
+    #          'end_time': 'MM/DD/YYYY hh:mm[AM/PM]'
+    #        },
+    #        {...}
+    #      ]        
+    #   },
+    #   {...}
+    # ]
+
+    #get all of the availability slots that have been created
+    all_avail_slots = []
+    for response in member_responses:
+        if response['answered'] == True:
+            all_avail_slots.append(response['avail_slots'])
+    
+    # if at least two members have not responded return an empty list
+    if len(all_avail_slots) < 2:
+        return []
+    
+    # NOTE: The current algorithm has four for-loops and is obviously an innefficient
+    # process. Because there are only intended to be up to around 10 members in an 
+    # organization and up to around 10 responses from each member, I don't see this 
+    # inefficiency as being a problem. Even so, a more elegant solution, assuming one 
+    # exists, should be found.
+
+    dates_in_common = []
+     
+    # loop through dates for first member of the organization
+    for outer_slot in all_avail_slots[0]:
+        # get start and end dates for the outer slot
+        start_time = datetime.strptime(outer_slot['start_time'], "%m/%d/%Y %I:%M%p") 
+        end_time = datetime.strptime(outer_slot['end_time'], "%m/%d/%Y %I:%M%p") 
+
+        # because there can be multiple good slots in a given member response,
+        # we need to make a list to append to and loop through
+        outer_potential_times = []
+        initial_outer_slot = {
+            'start_time': start_time, 
+            'end_time': end_time 
+        }
+        outer_potential_times.append(initial_outer_slot)
+
+        # loop through the answers for the remaining members
+        for member_response in all_avail_slots[1:]:
+            # a list to save all good times for this member response 
+            inner_potential_times = []
+            # loop through each avail slot in the member_response
+            for inner_slot in member_response:
+                # loop through the outer potential times
+                for potential_time in outer_potential_times:
+                    green_light = False # determine if a good slot has been found
+                    # get the datetime objects to compare to potential_time
+                    compared_start_time = datetime.strptime(inner_slot['start_time'], "%m/%d/%Y %I:%M%p") 
+                    compared_end_time = datetime.strptime(inner_slot['end_time'], "%m/%d/%Y %I:%M%p") 
+
+                    # potential start and end times will be adjusted 
+                    # according to the current avail slot
+                    outer_start_time = potential_time['start_time'] 
+                    outer_end_time = potential_time['end_time'] 
+
+                    # compared_start_time is in the desired window, change start_time
+                    if compared_start_time >= outer_start_time and compared_start_time < outer_end_time:
+                        green_light = True
+                        outer_start_time = compared_start_time
+
+                    # compared_end_time is in the desired window, change end_time
+                    if compared_end_time > outer_start_time and compared_end_time <= outer_end_time:
+                        green_light = True
+                        outer_end_time = compared_end_time
+                    
+                    # slot is compatable but start and end times do not change
+                    if compared_start_time < outer_start_time and compared_end_time > outer_end_time:
+                        green_light = True
+                    
+                    # if a good slot is found append it to inner_potential times
+                    if green_light == True:
+                        new_slot = {
+                            'start_time': outer_start_time,
+                            'end_time': outer_end_time
+                        }
+                        inner_potential_times.append(new_slot)
+            
+            # save all potential times found for this member response in the outer loop
+            outer_potential_times = inner_potential_times
+
+        # all of the times here are good, convert them to dict objects 
+        # and append them to dates_in_common
+        for time in outer_potential_times:
+            good_date = {}
+            good_date['start_time'] = time['start_time'].strftime("%-m/%-d/%Y %-I:%M%p")
+            good_date['end_time'] = time['end_time'].strftime("%-m/%-d/%Y %-I:%M%p")
+            dates_in_common.append(good_date)
+
+    return dates_in_common
 
 def get_member_orgs(member_id):
     '''create a lis of dicts with information from all of the organizations a member
@@ -121,7 +226,7 @@ def get_roster(org_id):
 
 def get_org_avail_requests(org_id):
     '''create a list of dicts containing information from all of the 
-    availability requests assiciated with a particular organization to be displayed
+    availability requests associated with a particular organization to be displayed
     on the organization page. Each dict contains the keys 'avail_request_id',
     'avail_request_name', 'completed' and 'members_not_answered' '''
     db = get_db()

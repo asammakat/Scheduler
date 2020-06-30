@@ -92,11 +92,6 @@ def validate_time_slot(
     avail_request_start_datetime = datetime.strptime(avail_request_start, "%m/%d/%Y %I:%M%p")
     avail_request_end_datetime = datetime.strptime(avail_request_end, "%m/%d/%Y %I:%M%p")
 
-    print("SLOT START: ", start_slot_datetime)
-    print("AR START: ", avail_request_start_datetime)
-    print("SLOT END: ", end_slot_datetime)
-    print("AR END: ", avail_request_end_datetime)
-
     if start_slot_datetime < avail_request_start_datetime:
         return "availability slot cannot start before the availability request"
     elif end_slot_datetime > avail_request_end_datetime:

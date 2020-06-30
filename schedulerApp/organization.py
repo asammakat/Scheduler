@@ -41,7 +41,8 @@ from schedulerApp.query_db import(
     get_org_avail_requests, 
     get_org_booked_dates,
     get_org_info,
-    get_roster
+    get_roster,
+    find_dates_in_common
 )
 
 bp = Blueprint('organization', __name__)  
@@ -65,8 +66,6 @@ def org_page(org_id):
     # delete old avail_requests and booked dates and get session data
     update_availability_requests_by_org(org_id)
     update_booked_dates_by_org(org_id)
-
-
     # NOTE: At the moment grabbing this information is redundant because all of 
     # the availability requests for this organization is stored in 
     # session['availability_request'] and session['booked_dates']. However we are 
@@ -133,7 +132,7 @@ def avail_request(avail_request_id):
 
     # get list of dicts containing each member in the organization's information
     # regarding the availabiity request 
-    # members = [
+    # member_responses = [
     #   {
     #     'name': 'name',
     #     'answered': True/False
@@ -149,6 +148,9 @@ def avail_request(avail_request_id):
     # ]
     session['member_responses'] = get_member_responses(avail_request_id)  
     session.modified = True  
+
+    # find the dates in common for the members who have responded to the avail request
+    session['dates_in_common'] = find_dates_in_common(session['member_responses'])
 
     if request.method == 'POST':
         start_date = request.form['start_date']

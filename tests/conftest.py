@@ -74,7 +74,7 @@ class AuthActions(object):
                 'end_time': end_time, 
                 'tz': tz
             }
-    )
+        )
 
     def add_avail_slot(
         self,
@@ -94,7 +94,7 @@ class AuthActions(object):
                 'end_time': end_time, 
             }
         )
-    
+
     def book(
         self, 
         start_date='1/1/2030', 
