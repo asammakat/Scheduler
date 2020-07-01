@@ -181,7 +181,8 @@ def test_delete_availability_request(auth, client, app):
             '''
         ).fetchone() is not None
 
-        assert client.get('/1/delete_avail_request').status_code == 200     
+        response = client.get('/1/delete_avail_request')
+        assert response.headers['location'] == 'http://localhost/1/org_page'     
 
         assert db.execute(
             '''
@@ -207,7 +208,8 @@ def test_delete_booked_date(auth, client, app):
             '''
         ).fetchone() is not None
 
-        assert client.get('/1/delete_booked_date').status_code == 200
+        request = client.get('/1/delete_booked_date')
+        assert request.headers['location'] == 'http://localhost/1/org_page'
 
         assert db.execute(
             '''

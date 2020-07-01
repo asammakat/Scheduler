@@ -206,10 +206,8 @@ def delete_avail_request(avail_request_id): #TODO: rename to 'delete_avail_reque
     delete_availability_request(avail_request_id)
     flash("availability request deleted")
     # return user to the org page
-    return render_template(
-        'organization/org_page.html/', 
-        common_timezones=common_timezones,
-    )
+    return redirect(url_for('organization.org_page', org_id=session['active_org']['org_id'] ))
+
 
 @bp.route('/<int:booked_date_id>/delete_booked_date')
 @login_required
@@ -218,10 +216,11 @@ def delete_booked_date_page(booked_date_id):
     delete_booked_date(booked_date_id)
     flash("booked date deleted")
     # return user to the org page
-    return render_template(
-        'organization/org_page.html/', 
-        common_timezones=common_timezones,
-    )    
+    # return render_template(
+    #     'organization/org_page.html/', 
+    #     common_timezones=common_timezones,
+    # )    
+    return redirect(url_for('organization.org_page', org_id=session['active_org']['org_id'] ))
 
 @bp.route('/<int:avail_request_id>/book', methods=('GET', 'POST'))
 @login_required
