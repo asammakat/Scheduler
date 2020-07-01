@@ -17,9 +17,13 @@
         {% for slot in member['avail_slots'] %}
         <h1> Available from {{ slot['start_time'] }} until {{ slot['end_time'] }} </h1>
         {% endfor %}
-    {% endif %}
+    {% endif %}    
     <br>
     {% endfor %}
+    <h1> Current Common Availability </h1>
+    {% for date in session['dates_in_common'] %}
+      <h3>from {{ date['start_time'] }} to {{ date['end_time'] }}</h3> 
+    {% endfor %}    
     <h1>Book this date: </h1>
     <form method="post">
         <label for="start_date">Start Date (mm/dd/yyyy)</label>
