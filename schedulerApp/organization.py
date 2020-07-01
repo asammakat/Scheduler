@@ -42,7 +42,8 @@ from schedulerApp.query_db import(
     get_org_booked_dates,
     get_org_info,
     get_roster,
-    find_dates_in_common
+    find_dates_in_common,
+    get_org_id_from_avail_request    
 )
 
 bp = Blueprint('organization', __name__)  
@@ -129,6 +130,11 @@ def avail_request(avail_request_id):
         return redirect(url_for('index'))   
 
     session['active_avail_request'] = get_avail_request(avail_request_id)
+
+    if 'active_org' not in session.keys():
+        org_id = get_org_id_from_avail_request(avail_request_id)
+        session['active_org'] = get_org_info(org_id)
+        session['roster'] = get_roster(org_id)        
 
     # get list of dicts containing each member in the organization's information
     # regarding the availabiity request 
@@ -232,7 +238,7 @@ def book(avail_request_id):
     # get the data from the database to be displayed 
     if 'active_avail_request' not in session.keys():
         session['active_avail_request'] = get_avail_request(avail_request_id)
-        session['member_responses'] = get_member_responses(avail_request_id)    
+        session['member_responses'] = get_member_responses(avail_request_id)  
 
     if request.method == 'POST':
         start_date = request.form['start_date']

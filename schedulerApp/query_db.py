@@ -501,3 +501,16 @@ def get_member_responses(avail_request_id):
 
         members.append(member)
     return members
+
+def get_org_id_from_avail_request(avail_request_id):
+    db = get_db()
+
+    org_id = db.execute(
+        '''
+        SELECT availability_request.org_id 
+        FROM availability_request
+        WHERE availability_request.avail_request_id = ?
+        ''',
+        (avail_request_id,)
+    ).fetchone()[0]
+    return org_id
