@@ -191,6 +191,36 @@ def test_delete_availability_request(auth, client, app):
             WHERE availability_request.avail_request_id = 1
             '''
         ).fetchone() is None
+    
+def test_delete_avail_slot(auth, client, app):
+    auth.login()
+    auth.make_avail_request()
+    auth.add_avail_slot()
+    assert client.get('/1/avail_request').status_code == 200
+
+    with app.app_context():
+        db = get_db()
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM availability_slot
+            WHERE availability_slot.avail_slot_id = 1
+            '''
+        ).fetchone() is not None
+
+        request = client.get('/1/delete_avail_slot')
+
+        # test for correct redirect
+        assert request.headers['location'] == 'http://localhost/1/avail_request'
+
+        # avail slot should not be deleted
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM availability_slot
+            WHERE availability_slot.avail_slot_id = 1
+            '''
+        ).fetchone() is None        
 
 def test_delete_booked_date(auth, client, app):
     auth.login()

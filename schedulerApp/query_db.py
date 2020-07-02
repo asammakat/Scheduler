@@ -432,6 +432,8 @@ def get_member_responses(avail_request_id):
     and the start and end times of any availability slots they have created 
     in association with a particular availability request to be displayed on 
     the availability request page and the book page.'''
+
+    print("DEBUG: Hi from get_member_responses")
     db = get_db()
     members = [] #TODO: should this not be a list? 
 
@@ -475,7 +477,10 @@ def get_member_responses(avail_request_id):
         # in assiciation with the availability_request
         slots_from_db = db.execute(
             '''
-            SELECT availability_slot.start_slot, availability_slot.end_slot 
+            SELECT 
+            availability_slot.start_slot, 
+            availability_slot.end_slot, 
+            availability_slot.avail_slot_id
             FROM   availability_slot
             WHERE  availability_slot.avail_request_id = ? AND availability_slot.member_id = ?
             ''',
@@ -486,15 +491,18 @@ def get_member_responses(avail_request_id):
 
         slots = []
         
-        #grab the start and end times for each availability_slot the member has created
+        # grab the start and end times and the avail_slot_id 
+        # for each availability_slot the member has created
         for s in slots_from_db:
             slot = {}
 
             start_time = convert_datetime_to_user_tz(s[0], timezone)
             end_time = convert_datetime_to_user_tz(s[1], timezone)
+            avail_slot_id = s[2]
 
             slot['start_time'] = start_time.strftime("%-m/%-d/%Y %-I:%M%p")
             slot['end_time'] = end_time.strftime("%-m/%-d/%Y %-I:%M%p")
+            slot['avail_slot_id'] = avail_slot_id
             slots.append(slot)
         
         member['avail_slots'] = slots

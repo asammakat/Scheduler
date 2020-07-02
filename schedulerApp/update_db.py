@@ -64,6 +64,9 @@ def insert_availability_slot(avail_request_id, start_date, start_time, end_date,
         (start_slot, end_slot, avail_request_id, session['member_id'],)
     )
 
+    # get avail_slot_id of the last insert
+    avail_slot_id = db.execute('SELECT last_insert_rowid()').fetchone()[0]
+
     # set the answered field in member_request to TRUE
     db.execute(
         ''' UPDATE member_request SET answered = TRUE WHERE member_id = ? AND avail_request_id = ? ''',
@@ -75,13 +78,14 @@ def insert_availability_slot(avail_request_id, start_date, start_time, end_date,
     start_datetime = return_datetime(start_date, start_time).strftime("%-m/%-d/%Y %-I:%M%p")
     end_datetime = return_datetime(end_date, end_time).strftime("%-m/%-d/%Y %-I:%M%p")
 
-    for response in session['member_responses']:
+    for response in session['member_responses']: 
         if response['member_id'] == session['member_id']:
             response['answered'] = 1
             response['avail_slots'].append(
                 {
                     'start_time': start_datetime,
-                    'end_time': end_datetime
+                    'end_time': end_datetime,
+                    'avail_slot_id': avail_slot_id
                 }
             )
     session.modified = True    
@@ -186,7 +190,7 @@ def delete_availability_request(avail_request_id):
     session.modified = True
 
 def delete_booked_date(booked_date_id):
-    '''delete a booked date from the database and update session'''
+    '''Delete a booked date from the database and update session'''
     db = get_db()
     db.execute(
         '''
@@ -201,6 +205,21 @@ def delete_booked_date(booked_date_id):
     session['booked_dates'] = get_member_booked_dates(session['member_id'])
     session['org_booked_dates'] = get_org_booked_dates(session['active_org']['org_id'])
     session.modified = True
+
+def delete_availability_slot(avail_slot_id):
+    '''Delete an availability slot from the database'''
+    db = get_db()
+
+    db.execute(
+        '''
+        DELETE FROM availability_slot
+        WHERE availability_slot.avail_slot_id = ?
+        ''',
+        (avail_slot_id,)
+    )
+    db.commit()
+
+    #TODO: if no more avail slots set answered to 0
 
 def update_availability_requests_by_member(member_id):
     '''delete all of the availability requests associated that are

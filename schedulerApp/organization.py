@@ -32,7 +32,8 @@ from schedulerApp.update_db import(
     update_availability_requests_by_org,
     update_booked_dates_by_org, 
     delete_availability_request,
-    delete_booked_date
+    delete_booked_date,
+    delete_availability_slot
 )
 
 from schedulerApp.query_db import(
@@ -152,11 +153,11 @@ def avail_request(avail_request_id):
     #   },
     #   {...}
     # ]
-    session['member_responses'] = get_member_responses(avail_request_id)  
-    session.modified = True  
+    session['member_responses'] = get_member_responses(avail_request_id)
 
     # find the dates in common for the members who have responded to the avail request
     session['dates_in_common'] = find_dates_in_common(session['member_responses'])
+    session.modified = True      
 
     if request.method == 'POST':
         start_date = request.form['start_date']
@@ -193,7 +194,6 @@ def avail_request(avail_request_id):
         
         else:
             flash(error)
-
     return render_template(
         'organization/avail_request.html/', 
         avail_request_id=avail_request_id
@@ -208,6 +208,15 @@ def delete_avail_request(avail_request_id): #TODO: rename to 'delete_avail_reque
     # return user to the org page
     return redirect(url_for('organization.org_page', org_id=session['active_org']['org_id'] ))
 
+@bp.route('/<int:avail_slot_id>/delete_avail_slot')
+@login_required
+def delete_avail_slot(avail_slot_id):
+    '''Allow user to delete an availability slot'''
+    delete_availability_slot(avail_slot_id)
+    flash("availability slot deleted")
+    # return user to the avail_request page
+    return redirect(url_for('organization.avail_request', avail_request_id=session['active_avail_request']['avail_request_id']))
+
 
 @bp.route('/<int:booked_date_id>/delete_booked_date')
 @login_required
@@ -215,11 +224,7 @@ def delete_booked_date_page(booked_date_id):
     '''Allow user to delete a booked date'''
     delete_booked_date(booked_date_id)
     flash("booked date deleted")
-    # return user to the org page
-    # return render_template(
-    #     'organization/org_page.html/', 
-    #     common_timezones=common_timezones,
-    # )    
+    # return user to the org page 
     return redirect(url_for('organization.org_page', org_id=session['active_org']['org_id'] ))
 
 @bp.route('/<int:avail_request_id>/book', methods=('GET', 'POST'))

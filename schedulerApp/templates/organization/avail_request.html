@@ -15,7 +15,10 @@
         <h3>This member has not responded</h3>
       {% else %}
         {% for slot in response['avail_slots'] %}
-          <h3> Available from {{ slot['start_time'] }} until {{ slot['end_time'] }} </h1>
+          <h3> 
+            Available from {{ slot['start_time'] }} until {{ slot['end_time'] }} 
+            <a class="action" href="{{ url_for('organization.delete_avail_slot', avail_slot_id=slot['avail_slot_id']) }}" >DELETE</a>
+          </h3>
         {% endfor %}
       {% endif %}
     <br>
