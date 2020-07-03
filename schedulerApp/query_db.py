@@ -362,6 +362,7 @@ def get_avail_requests_data(member_id):
     '''Get a list of dicts containing data on all availability requests for a member 
     to be displayed on the home page for a member. Each dict contains the keys
     'avail_request_id', 'avail_request_name', 'org_name' and 'answered'.'''
+    print("DEBUG: Hi from get avail requests data")
     db = get_db()
 
     # get all of the availability request id's assiciated with a member
@@ -405,7 +406,7 @@ def get_avail_requests_data(member_id):
             )
             ''',
             (avail_request_id,)
-        ).fetchone()[0] #BUG getting wrong name here
+        ).fetchone()[0] 
 
         answered = db.execute(
             '''
@@ -425,6 +426,7 @@ def get_avail_requests_data(member_id):
         request_data['answered'] = answered
         
         avail_requests.append(request_data)
+    print("DEBUG avail_requests: ", avail_requests)
     return avail_requests
 
 def get_member_responses(avail_request_id):

@@ -33,7 +33,8 @@ from schedulerApp.update_db import(
     update_booked_dates_by_org, 
     delete_availability_request,
     delete_booked_date,
-    delete_availability_slot
+    delete_availability_slot,
+    remove_from_org
 )
 
 from schedulerApp.query_db import(
@@ -226,6 +227,16 @@ def delete_booked_date_page(booked_date_id):
     flash("booked date deleted")
     # return user to the org page 
     return redirect(url_for('organization.org_page', org_id=session['active_org']['org_id'] ))
+
+@bp.route('/<int:member_id>/<int:org_id>/remove_from_org')
+@login_required
+def remove_from_org_page(member_id, org_id):
+    '''Allow a member to be dropped from an organization'''
+    remove_from_org(member_id, org_id)
+    flash("member removed from roster")
+    # return to the home page
+    return redirect('/')
+    
 
 @bp.route('/<int:avail_request_id>/book', methods=('GET', 'POST'))
 @login_required

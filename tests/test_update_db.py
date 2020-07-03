@@ -52,7 +52,6 @@ def test_update_availability_requests_by_member(app, auth, client):
             tz=timezone
         )     
              
-
         # double check that inserts were successful
         # avail_request_id is 2 
         assert db.execute(
@@ -79,7 +78,6 @@ def test_update_availability_requests_by_member(app, auth, client):
             '''
         ).fetchone() is None   
 
-
         assert db.execute(
             '''
             SELECT * FROM member_request
@@ -88,8 +86,6 @@ def test_update_availability_requests_by_member(app, auth, client):
         ).fetchone() is None       
 
         #TODO: test that old avail request made by other user is not deleted
-              
-        
                   
 def test_update_booked_dates_by_member(app, auth, client):
     org_id = 1

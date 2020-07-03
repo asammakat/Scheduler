@@ -248,3 +248,112 @@ def test_delete_booked_date(auth, client, app):
             WHERE booked_date.booked_date_id = 1
             '''
         ).fetchone() is None
+    
+def test_remove_from_org(auth, client, app):
+    auth.login()
+    auth.make_avail_request()
+    auth.add_avail_slot()
+    assert client.get('/').status_code == 200
+
+    with app.app_context():
+        db = get_db()
+
+        # make sure entries we expect are in the database are there
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM availability_slot
+            WHERE availability_slot.avail_slot_id = 1
+            '''
+        ).fetchone() is not None
+
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM roster
+            WHERE roster.org_id = 1
+            AND roster.member_id = 1
+            '''
+        ).fetchone() is not None
+
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM member_request
+            WHERE member_request.member_id = 1
+            '''
+        ).fetchone() is not None        
+
+        # add an availability_slot that should not be deleted
+        client.get('/logout')
+        auth.login('other', 'test')
+        auth.add_avail_slot()
+
+        # make sure that new avail slot was added
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM availability_slot
+            WHERE availability_slot.avail_slot_id = 2
+            '''
+        ).fetchone() is not None        
+
+        request = client.get('/1/1/remove_from_org')
+        assert request.headers['location'] == 'http://localhost/'
+
+        # this member should be deleted from the roster
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM roster
+            WHERE roster.org_id = 1
+            AND roster.member_id = 1
+            '''
+        ).fetchone() is None
+
+        # other member in the org should not be deleted from roster
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM roster
+            WHERE roster.org_id = 1
+            AND roster.member_id = 2
+            '''
+        ).fetchone is not None
+
+        # availability slot associated with organization should also be deleted
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM availability_slot
+            WHERE availability_slot.avail_slot_id = 1
+            '''
+        ).fetchone() is None
+
+        # make sure member request associated with the member 
+        # and the availability request has been deleted
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM member_request
+            WHERE member_request.member_id = 1
+            '''
+        ).fetchone() is None
+
+        # this availability slot should not be deleted
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM availability_slot
+            WHERE availability_slot.avail_slot_id = 2
+            '''
+        ).fetchone() is not None
+
+        # this member_request should not be deleted
+        assert db.execute(
+            '''
+            SELECT * 
+            FROM member_request
+            WHERE member_request.member_id = 2
+            '''
+        ). fetchone() is not None

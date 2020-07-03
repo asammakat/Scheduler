@@ -7,7 +7,8 @@ from schedulerApp.query_db import(
     get_org_avail_requests, 
     get_avail_requests_data, 
     get_member_booked_dates, 
-    get_org_booked_dates
+    get_org_booked_dates,
+    get_roster
 ) 
 def insert_booked_date(avail_request_id, start_date, start_time, end_date, end_time, timezone):
     '''insert a booked_date into the database'''
@@ -220,6 +221,57 @@ def delete_availability_slot(avail_slot_id):
     db.commit()
 
     #TODO: if no more avail slots set answered to 0
+
+def remove_from_org(member_id, org_id):
+    '''Remove a member from an Organization'''
+    db = get_db()
+
+    # delete the member from the roster
+    db.execute(
+        '''
+        DELETE FROM roster
+        WHERE member_id = ? 
+        AND org_id = ?
+        ''',
+        (member_id, org_id,)
+    )
+
+    # delete all availability slots made by the member for availability requests 
+    # associated with the organization
+    db.execute(
+        '''
+        DELETE FROM availability_slot
+        WHERE availability_slot.member_id = ?
+        AND availability_slot.avail_request_id 
+        IN (
+            SELECT availability_request.avail_request_id
+            FROM availability_request
+            WHERE availability_request.org_id = ?
+        )
+        ''',
+        (member_id, org_id,)
+    )
+
+    # delete all member request data for all availability requests associated with 
+    # this member and this organization
+    db.execute(
+        '''
+        DELETE FROM member_request
+        WHERE member_request.member_id = ?
+        AND member_request.avail_request_id
+        IN (
+            SELECT availability_request.avail_request_id
+            FROM availability_request
+            WHERE availability_request.org_id = ?
+        )
+        ''',
+        (member_id, org_id,)
+    )
+
+    db.commit()
+
+    #update session object 
+    session['roster'] = get_roster(org_id)
 
 def update_availability_requests_by_member(member_id):
     '''delete all of the availability requests associated that are
