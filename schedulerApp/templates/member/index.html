@@ -34,7 +34,7 @@
             <header>
               <div>
                 <a class="action" href="{{ url_for('organization.org_page', org_id=org['org_id']) }}">{{ org['org_name'] }}</a>
-                <a class="action" href="{{ url_for('organization.remove_from_org_page', member_id=session['member_id'], org_id=org['org_id'] ) }}">Leave</a>
+                <a class="action" href="{{ url_for('organization.leave_org', member_id=session['member_id'], org_id=org['org_id'] ) }}">Leave</a>
               </div>
             </header>
           </article>

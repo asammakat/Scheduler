@@ -7,8 +7,13 @@
 {% block content %}
   <h1>Members:</h1>
   {% for member in session['roster'] %}
-    <h3>{{ member }}</h3>
-  {% endfor %}
+    <h3>
+      {{ member['username'] }}
+      {% if member['member_id'] != session['member_id'] %}
+        <a class="action" href="{{ url_for('organization.drop_from_org', member_id=member['member_id'], org_id=session['active_org']['org_id'] ) }}">Drop</a>
+      {% endif %}
+    </h3>
+    {% endfor %}
   <h1>Availability Requests:</h1>
   {% for avail_request in session['org_avail_requests'] %}
     {% if avail_request['completed'] == 0 %}

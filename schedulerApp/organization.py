@@ -228,14 +228,23 @@ def delete_booked_date_page(booked_date_id):
     # return user to the org page 
     return redirect(url_for('organization.org_page', org_id=session['active_org']['org_id'] ))
 
-@bp.route('/<int:member_id>/<int:org_id>/remove_from_org')
+@bp.route('/<int:member_id>/<int:org_id>/leave_org')
 @login_required
-def remove_from_org_page(member_id, org_id):
-    '''Allow a member to be dropped from an organization'''
+def leave_org(member_id, org_id):
+    '''Allow a member to be leave an organization'''
     remove_from_org(member_id, org_id)
     flash("member removed from roster")
     # return to the home page
     return redirect('/')
+
+@bp.route('/<int:member_id>/<int:org_id>/drop_from_org')
+@login_required
+def drop_from_org(member_id, org_id):
+    '''Allow a member to be dropped from an organization'''
+    remove_from_org(member_id, org_id)
+    flash("member removed from roster")
+    # return to the home page
+    return redirect(url_for('organization.org_page',  org_id=session['active_org']['org_id']))    
     
 
 @bp.route('/<int:avail_request_id>/book', methods=('GET', 'POST'))

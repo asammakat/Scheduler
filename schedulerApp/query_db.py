@@ -203,9 +203,10 @@ def get_roster(org_id):
     '''get a list of all member_id's associated with an organization'''
     db = get_db()
     
+    #TODO: add member_id to this and make a dict
     roster_from_db = db.execute(
         '''
-        SELECT member.username 
+        SELECT member.username, member.member_id
         FROM member
         WHERE member.member_id 
         IN(
@@ -220,8 +221,10 @@ def get_roster(org_id):
     roster = []
 
     for r in roster_from_db:
-        roster.append(r[0])
-    
+        member = {}
+        member['username'] = r[0]
+        member['member_id'] = r[1]
+        roster.append(member)
     return roster
 
 def get_org_avail_requests(org_id):
