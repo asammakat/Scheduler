@@ -6,6 +6,8 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from schedulerApp.db import get_db
+from schedulerApp.query_db import get_org_info, get_roster, get_org_avail_requests 
+from schedulerApp.update_db import update_member_request
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -159,6 +161,16 @@ def add_to_roster():
                 (org_id, member_id,)
             )
             db.commit()
+
+            # update session data
+            session['active_org'] = get_org_info(org_id)
+            session['roster'] = get_roster(org_id)          
+            session['org_avail_requests'] = get_org_avail_requests(org_id)
+            session.modified = True
+
+            #update member_request
+            update_member_request()            
+
             flash("join successful!")
             return redirect(url_for('index'))
 

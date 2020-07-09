@@ -389,3 +389,17 @@ def update_booked_dates_by_org(org_id):
     session['booked_dates'] = get_member_booked_dates(session['member_id'])
     session['org_booked_dates'] = get_org_booked_dates(org_id)
     session.modified = True
+
+def update_member_request():
+    '''update member requests after a member joins an organization'''
+    db = get_db()
+
+    for avail_request in session['org_avail_requests']:
+        db.execute(
+            '''
+            INSERT INTO member_request (member_id, avail_request_id, answered)
+            VALUES (?, ?, ?)
+            ''',
+            (session['member_id'], avail_request['avail_request_id'], 0)
+        )
+    db.commit()

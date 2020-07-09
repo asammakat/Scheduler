@@ -82,8 +82,36 @@ def test_add_to_roster(client, app, auth):
     assert response.headers['Location'] == 'http://localhost/' 
     
     with app.app_context():
-        assert get_db().execute('SELECT * FROM roster WHERE member_id = 1') is not None
+        assert get_db().execute('SELECT * FROM roster WHERE org_id = 2') is not None
 
+        #Test that new member can make a avail slot
+        # make an avail request as old user
+        auth.make_avail_request(org_id=2)
+
+        assert get_db().execute(
+            '''
+            SELECT * FROM availability_request
+            '''
+        ).fetchone() is not None
+
+        # log in new user
+        client.get('/logout')
+        auth.login('other', 'test')
+
+        # join testOrg and make an availability slot
+        response = auth.add_to_roster('testOrg1', 'test')
+
+        # test that new member has succesfully joined the org
+        assert get_db().execute('SELECT * FROM roster WHERE member_id = 2 AND org_id = 2') is not None
+        assert client.get('/1/org_page').status_code == 200
+        assert get_db().execute('SELECT * FROM member_request WHERE member_id = 2') is not None
+        auth.add_avail_slot()
+
+        assert get_db().execute(
+            '''
+            SELECT * FROM availability_slot
+            '''
+        ).fetchone() is not None
 
 @pytest.mark.parametrize(('org_name', 'password', 'message'), (
     ('b', 'test', b'This organization does not exist.'),
