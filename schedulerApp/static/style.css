@@ -1,0 +1,24 @@
+html { font-family: sans-serif; background: rgb(240, 255, 252); padding: 1rem; }
+body { max-width: 960px; margin: 6rem auto; background: rgb(240, 255, 252); }
+h1 { font-family: sans-serif; color: rgb(19, 57, 138); margin: 1rem 0 3rem; padding-top: .25rem; text-align: center;}
+h2 { font-family: sans-serif; color: rgb(19, 57, 138); margin: 1rem; }
+h3 { font-family: sans-serif; color: rgb(19, 57, 138); margin: 1rem; }
+h4 { font-family: sans-serif; color: rgb(19, 57, 138); margin: 1rem; }
+h5 { font-family: sans-serif; color: rgb(19, 57, 138); margin: 1rem; }
+p { font-family: sans-serif; color: black; margin: 0 1rem 1rem 1rem; padding-bottom: 1rem; text-align: justify;}
+a { color: black ;}
+form {color: black; margin: 1rem 1rem 1rem 1rem; }
+label { display: inline-block; width: 15rem }
+input{ display: inline-block;}
+.base-link {text-align: right;}
+.base-link h4 {margin: 0;}
+.group a, h4 {margin: 0 0 0 2rem; }
+.group h3 {margin: 1rem 1rem 0 1rem;}
+hr { border: none; border-top: 1px solid lightgray; }
+nav { background: lightgray; display: flex; align-items: center; padding: 0 0.5rem; }
+nav h1 { flex: auto; margin: 0; }
+nav h1 a { text-decoration: none; padding: 0.25rem 0.5rem; }
+nav ul  { display: flex; list-style: none; margin: 0; padding: 0; }
+nav ul li a, nav ul li span, header .action { display: block; padding: 0.5rem; }
+input.danger { color: #cc2f2e; }
+input[type=submit] { min-width: 10em; text-align: left; }

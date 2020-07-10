@@ -1,16 +1,21 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}Welcome to Scheduler!{% endblock %}</h1>
+    {% if not g.member %}
+      <h2>Welcome to Scheduler!</h2>
+    {% endif %}
 {% endblock %}
 
 {% block content %}
-    <h1>IT IS CONTENT IT IS WHAT YOU CRAVE</h1>
     {% if g.member %}
-        <h1>Welcome human!</h1>
-        <a class="action" href="{{ url_for('auth.register_org') }}">Register a new organization</a>
-        <a class="action" href="{{ url_for('auth.add_to_roster') }}">Join an organization</a>
-        <h1>Your Availability Requests: </h1>
+      <div class="group">
+        <h3>What would you like to do?</h3>
+        <a class="action" href="{{ url_for('auth.register_org') }}">Register a new team</a>
+        <br>
+        <a class="action" href="{{ url_for('auth.add_to_roster') }}">Join a team</a>
+      </div>
+      <div class="group">
+        <h3>Your Availability Requests: </h3>
         {% for avail_request in session['avail_requests'] %}
           <a class="action" href="{{ url_for('organization.avail_request', avail_request_id=avail_request['avail_request_id']) }}">
               {{ avail_request['avail_request_name'] }}
@@ -21,24 +26,35 @@
           {% endif %}
           <br>
         {% endfor %}
-        <h1>Your booked dates: </h1>
+      </div>
+      <div class="group">
+        <h3>Your booked dates: </h3>
         {% for date in session['booked_dates']%}
-          {{ date['booked_date_name'] }} 
-          in {{ date['timezone'] }} 
-          from {{ date['start_time'].strftime("%-m/%-d/%Y %-I:%M%p") }} 
-          until {{ date['end_time'].strftime("%-m/%-d/%Y %-I:%M%p") }}
+          <h4>
+            {{ date['booked_date_name'] }} 
+            in {{ date['timezone'] }} 
+            from {{ date['start_time'].strftime("%-m/%-d/%Y %-I:%M%p") }} 
+            until {{ date['end_time'].strftime("%-m/%-d/%Y %-I:%M%p") }}
+          </h4>
         {% endfor %}
-        <h1>Your Organizations: </h1>
+      </div>
+      <div class="group">
+        <h3>Your Teams: </h3>
         {% for org in session['orgs'] %}
-          <article class="post">
-            <header>
-              <div>
-                <a class="action" href="{{ url_for('organization.org_page', org_id=org['org_id']) }}">{{ org['org_name'] }}</a>
-                <a class="action" href="{{ url_for('organization.leave_org', member_id=session['member_id'], org_id=org['org_id'] ) }}">Leave</a>
-              </div>
-            </header>
-          </article>
+            <a class="action" href="{{ url_for('organization.org_page', org_id=org['org_id']) }}">{{ org['org_name'] }}</a>
+            <a class="action" href="{{ url_for('organization.leave_org', member_id=session['member_id'], org_id=org['org_id'] ) }}">Leave</a>
         {% endfor %}
+      </div>
+    {% else %}
+      <p>
+        Scheduler is a web application that helps teams schedule meetings.
+        If you have registered as a member you can
+        register teams and invite team members to join.
+        Then create availability requests to check your team's availability.
+        Your team members will add availability slots and
+        Scheduler will determine the common availability among them.
+        When an availability request is ready to be booked a booked date can be created.
+      </p>    
     {% endif %}
 {% endblock %}
 

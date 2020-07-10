@@ -1,60 +1,78 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}{{ session['active_org']['org_name'] }}{% endblock %}</h1>
+  <h3>{% block title %}{{ session['active_org']['org_name'] }}{% endblock %}</h3>
 {% endblock %}
 
 {% block content %}
-  <h1>Members:</h1>
-  {% for member in session['roster'] %}
-    <h3>
-      {{ member['username'] }}
-      {% if member['member_id'] != session['member_id'] %}
-        <a class="action" href="{{ url_for('organization.drop_from_org', member_id=member['member_id'], org_id=session['active_org']['org_id'] ) }}">Drop</a>
-      {% endif %}
-    </h3>
+  <div class="group">
+    <h3>Members:</h3>
+    {% for member in session['roster'] %}
+      <h4>
+        {{ member['username'] }}
+        {% if member['member_id'] != session['member_id'] %}
+          <a class="action" href="{{ url_for('organization.drop_from_org', member_id=member['member_id'], org_id=session['active_org']['org_id'] ) }}">
+            Drop
+          </a>
+        {% endif %}
+      </h4>
     {% endfor %}
-  <h1>Availability Requests:</h1>
-  {% for avail_request in session['org_avail_requests'] %}
-    {% if avail_request['completed'] == 0 %}
-      <a class="action" href="{{ url_for('organization.avail_request', avail_request_id=avail_request['avail_request_id']) }}">
-        {{ avail_request['avail_request_name'] }}
-      </a> 
-      Not completed, need responses from:
-      {% for member_not_answered in avail_request['members_not_answered'] %}
-        {{ member_not_answered }}
-      {% endfor %}
-      <a class="delete" href="{{ url_for('organization.delete_avail_request', avail_request_id=avail_request['avail_request_id']) }}">
-        DELETE
-      </a>           
-    {% endif %}
-  <br>
-  {% endfor %}
-
-  {% for avail_request in session['org_avail_requests'] %}
-    {% if avail_request['completed'] == 1 %}
-    <a class="action" href="{{ url_for('organization.avail_request', avail_request_id=avail_request['avail_request_id']) }}">
-      {{ avail_request['avail_request_name'] }}
-    </a>    
-    Completed
+  </div>
+  <div class="group">
+    <h3>Availability Requests:</h3>
+    {% for avail_request in session['org_avail_requests'] %}
+      {% if avail_request['completed'] == 0 %}
+      <h4>    
+        <a class="action" href="{{ url_for('organization.avail_request', avail_request_id=avail_request['avail_request_id']) }}">
+          {{ avail_request['avail_request_name'] }}
+        </a> 
+          Not completed, need responses from:
+          {% for member_not_answered in avail_request['members_not_answered'] %}
+            {{ member_not_answered }}
+          {% endfor %}
+          <a class="delete" href="{{ url_for('organization.delete_avail_request', avail_request_id=avail_request['avail_request_id']) }}">
+            Delete request
+          </a>   
+        </h4>        
+      {% endif %}
+    {% endfor %}
+  
+    {% for avail_request in session['org_avail_requests'] %}
+      {% if avail_request['completed'] == 1 %}
+      <h4>
+        <a class="action" href="{{ url_for('organization.avail_request', avail_request_id=avail_request['avail_request_id']) }}">
+          {{ avail_request['avail_request_name'] }}
+        </a>    
+        **Completed**
         <a class="action" href="{{ url_for('organization.book', avail_request_id=avail_request['avail_request_id']) }}" >
-          BOOK
+          Book request
         </a>
         &nbsp              
         <a class="delete" href="{{ url_for('organization.delete_avail_request', avail_request_id=avail_request['avail_request_id']) }}">
-          DELETE
+          Delete request
         </a>
-    {% endif %}
-  {% endfor %}  
-  <h1>Booked dates: </h1>
-  {% for date in session['org_booked_dates'] %}
-    {{ date['booked_date_name'] }} in {{ date['timezone'] }} 
-    from {{ date['start_time'] }} 
-    until {{ date['end_time'] }}
-    <a class="action" href="{{ url_for('organization.delete_booked_date_page', booked_date_id = date['booked_date_id']) }}">DELETE</a>
-  {% endfor %}
+      </h4>
+  
+      {% endif %}
+    {% endfor %} 
+  </div>
 
-  <h1>Create an availability request:</h1>
+  <div class="group">
+    <h3>Booked dates: </h3>
+    {% for date in session['org_booked_dates'] %}
+      <h4>
+        {{ date['booked_date_name'] }} in {{ date['timezone'] }} 
+        from {{ date['start_time'] }} 
+        until {{ date['end_time'] }}
+        <a class="action" href="{{ url_for('organization.delete_booked_date_page', booked_date_id = date['booked_date_id']) }}">
+          Delete date
+        </a>
+      </h4>
+    {% endfor %}
+  </div> 
+
+
+  <h1>Create an availability request</h1>
   <form method="post">
     <label for="tz">Timezone</label>
     <select name= "tz">
@@ -62,18 +80,22 @@
         <option value= "{{ timezone }}" required>{{ timezone }}</option>"
       {% endfor %}
     </select>
+    <br>
     <label for="avail_request_name">Name</label>
     <input name="avail_request_name" id="avail_request_name">
     <br>
     <label for="start_date">Start Date (mm/dd/yyyy)</label>
     <input name="start_date" id="start_date" required>
+    <br>
     <label for="start_time">Start Time (hh:mm[a/p])</label>
     <input name="start_time" id="start_time" required>   
     <br> 
     <label for="end_date">End Date(mm/dd/yyyy)</label>
-    <input name="end_date" id="end_date" required>    
+    <input name="end_date" id="end_date" required>   
+    <br> 
     <label for="end_time">End Time (hh:mm[a/p])</label>
     <input name="end_time" id="end_time" required>
+    <br>
     <input type="submit" value="Create">
   </form>  
 {% endblock %}

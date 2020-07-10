@@ -1,47 +1,53 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}{{ session['active_avail_request']['name'] }}{% endblock %}</h1>
+  <h2>{% block title %}{{ session['active_avail_request']['name'] }}{% endblock %}</h2>
 {% endblock %}
 
 {% block content %}
-    <h1>This availability request starts at {{ session['active_avail_request']['start'] }} 
+    <h3>This availability request starts at {{ session['active_avail_request']['start'] }} 
         and goes until {{ session['active_avail_request']['end'] }} 
         in {{ session['active_avail_request']['tz'] }}
-    </h1>
+    </h3>
     {% for response in session['member_responses'] %}
-      <h3>{{ response['username'] }}:</h3>
-      {% if response['answered'] == 0 %}
-        <h3>This member has not responded</h3>
-      {% else %}
-        {% for slot in response['avail_slots'] %}
-          <h3> 
-            Available from {{ slot['start_time'] }} until {{ slot['end_time'] }} 
-            <a class="action" href="{{ url_for('organization.delete_avail_slot', avail_slot_id=slot['avail_slot_id']) }}" >DELETE</a>
-          </h3>
-        {% endfor %}
-      {% endif %}
-    <br>
+      <div class="group">
+        <h3>{{ response['username'] }}:</h3>
+        {% if response['answered'] == 0 %}
+          <h4>This member has not responded</h3>
+        {% else %}
+          {% for slot in response['avail_slots'] %}
+            <h4> 
+              Available from {{ slot['start_time'] }} until {{ slot['end_time'] }} 
+              <a class="action" href="{{ url_for('organization.delete_avail_slot', avail_slot_id=slot['avail_slot_id']) }}" >Delete slot</a>
+            </h4>
+          {% endfor %}
+        {% endif %}
+      </div>
     {% endfor %}
       
-    <h1>Current Common availability: </h1>
+  <div class="group">
+    <h3>Current Common availability: </h3>
     {% for date in session['dates_in_common'] %}
-      <h3>from {{ date['start_time'] }} to {{ date['end_time'] }}</h3> 
+      <h4>from {{ date['start_time'] }} to {{ date['end_time'] }}</h4> 
     {% endfor %}
+  </div>
     <h1>Add your availability: </h1>
     <form method="post">
         <label for="start_date">Start Date (mm/dd/yyyy)</label>
         <input name="start_date" id="start_date" required>
+        <br>
         <label for="start_time">Start Time (hh:mm[a/p])</label>
         <input name="start_time" id="start_time" required>   
         <br> 
         <label for="end_date">End Date(mm/dd/yyyy)</label>
-        <input name="end_date" id="end_date" required>    
+        <input name="end_date" id="end_date" required>
+        <br>
         <label for="end_time">End Time (hh:mm[a/p])</label>
         <input name="end_time" id="end_time" required>
+        <br>
         <input type="submit" value="Create">
     </form>  
-    <a class="action" href="{{ url_for('organization.book', avail_request_id=avail_request_id) }}" >BOOK</a>
+    <a class="action" href="{{ url_for('organization.book', avail_request_id=avail_request_id) }}" >Book this event</a>
 {% endblock %}
 
 

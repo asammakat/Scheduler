@@ -1,15 +1,17 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}Join an Organization{% endblock %}</h1>
+  <h2>{% block title %}Join an Organization{% endblock %}</h2>
 {% endblock %}
 
 {% block content %}
   <form method="post">
     <label for="org_name">Organization Name</label>
     <input name="org_name" id="org_name" required>
+    <br>
     <label for="password">Password</label>
     <input type="password" name="password" id="password" required>
+    <br>
     <input type="submit" value="Join">
   </form>
 {% endblock %}
