@@ -13,8 +13,6 @@ py==1.8.1
 pyparsing==2.4.7
 pytest==5.4.2
 pytz==2020.1
-scheduler==1.0.0
--e git+https://github.com/asammakat/Scheduler.git@384a49e4a4a741aff4a6093d60ff2371372a7b97#egg=schedulerApp
 six==1.15.0
 wcwidth==0.1.9
 Werkzeug==1.0.1
