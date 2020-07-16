@@ -11,9 +11,13 @@ def test_register(client, app):
     assert 'http://localhost/auth/login' == response.headers['Location']
 
     with app.app_context():
-        assert get_db().execute(
+        db = get_db()
+        cur = db.cursor()
+        cur.execute(
             "select * from member where username = 'a'",
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
 
 @pytest.mark.parametrize(('username', 'password', 'message'), (
@@ -37,9 +41,13 @@ def test_register_org(client, app, auth):
     assert response.headers['Location'] == 'http://localhost/' 
 
     with app.app_context():
-        assert get_db().execute(
+        db = get_db()
+        cur = db.cursor()
+        cur.execute(
             "SELECT * FROM organization WHERE org_name = 'a'",
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
 
 @pytest.mark.parametrize(('username', 'password', 'message'), (
@@ -82,17 +90,24 @@ def test_add_to_roster(client, app, auth):
     assert response.headers['Location'] == 'http://localhost/' 
     
     with app.app_context():
-        assert get_db().execute('SELECT * FROM roster WHERE org_id = 2') is not None
+        db = get_db()
+        cur = db.cursor()
+
+        cur.execute('SELECT * FROM roster WHERE org_id = 2')
+        result = cur.fetchone()
+        assert result is not None
 
         #Test that new member can make a avail slot
         # make an avail request as old user
         auth.make_avail_request(org_id=2)
 
-        assert get_db().execute(
+        cur.execute(
             '''
             SELECT * FROM availability_request
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
         # log in new user
         client.get('/logout')
@@ -102,16 +117,25 @@ def test_add_to_roster(client, app, auth):
         response = auth.add_to_roster('testOrg1', 'test')
 
         # test that new member has succesfully joined the org
-        assert get_db().execute('SELECT * FROM roster WHERE member_id = 2 AND org_id = 2') is not None
+        db = get_db()
+        cur = db.cursor()
+        cur.execute('SELECT * FROM roster WHERE member_id = 2 AND org_id = 2')
+        result = cur.fetchone()
+        assert result is not None
         assert client.get('/1/org_page').status_code == 200
-        assert get_db().execute('SELECT * FROM member_request WHERE member_id = 2') is not None
+        cur.execute('SELECT * FROM member_request WHERE member_id = 2')
+        result = cur.fetchone()
+        assert result is not None
+
         auth.add_avail_slot()
 
-        assert get_db().execute(
+        cur.execute(
             '''
             SELECT * FROM availability_slot
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
 @pytest.mark.parametrize(('org_name', 'password', 'message'), (
     ('b', 'test', b'This organization does not exist.'),

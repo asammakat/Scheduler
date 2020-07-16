@@ -5,32 +5,28 @@ import pytest
 from schedulerApp import create_app
 from schedulerApp.db import get_db, init_db
 
-with open(os.path.join(os.path.dirname(__file__), 'data.sql'), 'rb') as f:
-    _data_sql = f.read().decode('utf8')
-
 @pytest.fixture
 def app():
-    db_fd, db_path = tempfile.mkstemp()
-
     app = create_app({
         'TESTING': True,
-        'DATABASE': db_path,
+        'DATABASE_NAME': 'scheduler_testdb',
     })
 
     with app.app_context():
         init_db()
-        get_db().executescript(_data_sql)
+        db = get_db()
+        cur = db.cursor()
 
+        with open(os.path.join(os.path.dirname(__file__), 'data.sql'), 'rb') as f:
+            '''Create the tables in the schema'''
+            cur.execute(f.read().decode('utf8'))
+            db.commit()         
+            
     yield app
-
-    os.close(db_fd)
-    os.unlink(db_path)
-
 
 @pytest.fixture
 def client(app):
     return app.test_client()
-
 
 @pytest.fixture
 def runner(app):

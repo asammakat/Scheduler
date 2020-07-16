@@ -114,8 +114,9 @@ def get_member_orgs(member_id):
     'org_name' and 'org_id' '''
 
     db = get_db()
+    cur = db.cursor()
 
-    orgs_from_db = db.execute(
+    cur.execute(
         '''
         SELECT 
         organization.org_name, 
@@ -123,11 +124,12 @@ def get_member_orgs(member_id):
         FROM organization 
         WHERE organization.org_id 
         IN (
-            SELECT roster.org_id FROM roster WHERE member_id = ?
+            SELECT roster.org_id FROM roster WHERE member_id = %s
         )
         ''', 
         (member_id,)
-    ).fetchall()
+    )
+    orgs_from_db = cur.fetchall()
 
     orgs = []
 
@@ -147,8 +149,9 @@ def get_member_booked_dates(member_id):
     'booked_date_name, 'start_time', 'end_time', and 'timezone' get'''
 
     db = get_db()
+    cur = db.cursor()
 
-    member_booked_dates_from_db = db.execute(
+    cur.execute(
         '''
         SELECT 
         booked_date.booked_date_name,
@@ -160,11 +163,13 @@ def get_member_booked_dates(member_id):
         IN (
             SELECT roster.org_id
             FROM roster
-            WHERE roster.member_id = ?
+            WHERE roster.member_id = %s
         )
         ''',
         (member_id,)
-    ).fetchall()    
+    )
+
+    member_booked_dates_from_db = cur.fetchall() 
 
     member_booked_dates = []
 
@@ -186,12 +191,15 @@ def get_member_booked_dates(member_id):
 def get_org_info(org_id):
     '''create a dict with keys org_id and org_name'''
     db = get_db()
+    cur = db.cursor()
 
-    org_from_db = db.execute(
+    cur.execute(
         '''SELECT organization.org_id, organization.org_name 
-        FROM organization WHERE org_id = ?''',
+        FROM organization WHERE org_id = %s''',
         (org_id,)
-    ).fetchone()
+    )
+
+    org_from_db = cur.fetchone()
 
     org = {}
     org['org_id'] = org_from_db[0]
@@ -202,9 +210,10 @@ def get_org_info(org_id):
 def get_roster(org_id):
     '''get a list of all member_id's associated with an organization'''
     db = get_db()
+    cur = db.cursor()
     
     #TODO: add member_id to this and make a dict
-    roster_from_db = db.execute(
+    cur.execute(
         '''
         SELECT member.username, member.member_id
         FROM member
@@ -212,11 +221,13 @@ def get_roster(org_id):
         IN(
             SELECT roster.member_id
             FROM roster
-            WHERE roster.org_id = ?
+            WHERE roster.org_id = %s
         )
         ''',
         (org_id,)
-    ).fetchall()
+    )
+
+    roster_from_db = cur.fetchall()
 
     roster = []
 
@@ -233,20 +244,23 @@ def get_org_avail_requests(org_id):
     on the organization page. Each dict contains the keys 'avail_request_id',
     'avail_request_name', 'completed' and 'members_not_answered' '''
     db = get_db()
+    cur = db.cursor()
 
     # get the desired fields from all 
     # availability requests associated with an organization
-    org_avail_requests_from_db = db.execute(
+    cur.execute(
         '''
         SELECT 
         availability_request.avail_request_id,
         availability_request.avail_request_name,
         availability_request.completed
         FROM availability_request
-        WHERE availability_request.org_id = ?
+        WHERE availability_request.org_id = %s
         ''',
         (org_id,)
-    ).fetchall()
+    )
+
+    org_avail_requests_from_db = cur.fetchall()
 
     org_avail_requests = []
 
@@ -259,19 +273,21 @@ def get_org_avail_requests(org_id):
         avail_request['completed'] = org_avail_request[2]
 
         # get a list of all of the members who have not answered for the 
-        members_not_answered_from_db = db.execute(
+        cur.execute(
             '''
             SELECT member.username 
             FROM member 
             WHERE member.member_id 
             IN(
                 SELECT member_request.member_id FROM  member_request 
-                WHERE member_request.avail_request_id = ?
+                WHERE member_request.avail_request_id = %s
                 AND member_request.answered = FALSE                
             )
             ''',
             (org_avail_request[0],) 
-        ).fetchall()
+        )
+
+        members_not_answered_from_db = cur.fetchall()
 
         members_not_answered = []
         for member in members_not_answered_from_db:
@@ -288,10 +304,11 @@ def get_org_booked_dates(org_id):
     organization page. Each dict contains the keys 'booked_date_name',
     'booked_date_id', 'start_time', 'end_time' and 'timezone' '''
     db = get_db()
+    cur = db.cursor()
 
     # get the desired fields for all 
     # booked_dates associated with an organization
-    org_booked_dates_from_db = db.execute(
+    cur.execute(
         '''
         SELECT 
         booked_date.booked_date_name, 
@@ -300,10 +317,12 @@ def get_org_booked_dates(org_id):
         booked_date.end_time,
         booked_date.timezone
         FROM booked_date
-        WHERE booked_date.org_id = ?
+        WHERE booked_date.org_id = %s
         ''',
         (org_id,)
-    ).fetchall()
+    )
+
+    org_booked_dates_from_db = cur.fetchall()
 
     booked_dates = []
 
@@ -330,20 +349,25 @@ def get_avail_request(avail_request_id):
     '''get information for an availability request from the database 
     to display on the avail_request page'''
     db = get_db()
+    cur = db.cursor()
 
     # get desired fields for the availability request from the database
-    avail_request_from_db = db.execute(
-        '''SELECT 
-           availability_request.avail_request_name, 
-           availability_request.start_request,
-           availability_request.end_request,
-           availability_request.timezone,
-           availability_request.org_id,
-           availability_request.avail_request_id
-           FROM availability_request
-           WHERE avail_request_id = ?''',
-           (avail_request_id,)
-        ).fetchone()
+    cur.execute(
+        '''
+        SELECT 
+        availability_request.avail_request_name, 
+        availability_request.start_request,
+        availability_request.end_request,
+        availability_request.timezone,
+        availability_request.org_id,
+        availability_request.avail_request_id
+        FROM availability_request
+        WHERE avail_request_id = %s
+        ''',
+        (avail_request_id,)
+    )
+    
+    avail_request_from_db = cur.fetchone()
 
     # create a dict to store availability request information
     avail_request = {}
@@ -366,20 +390,23 @@ def get_avail_requests_data(member_id):
     to be displayed on the home page for a member. Each dict contains the keys
     'avail_request_id', 'avail_request_name', 'org_name' and 'answered'.'''
     db = get_db()
+    cur = db.cursor()
 
     # get all of the availability request id's assiciated with a member
-    avail_request_ids = db.execute(
+    cur.execute(
         '''
         SELECT 
         availability_request.avail_request_id
         FROM availability_request 
         WHERE availability_request.avail_request_id 
         IN(
-            SELECT avail_request_id FROM member_request WHERE member_request.member_id = ?
+            SELECT avail_request_id FROM member_request WHERE member_request.member_id = %s
         )
         ''',
         (member_id, )
-    ).fetchall()
+    )
+
+    avail_request_ids = cur.fetchall()
 
     avail_requests = []
 
@@ -388,37 +415,44 @@ def get_avail_requests_data(member_id):
     for elem in avail_request_ids:
         avail_request_id = elem[0] #elem is a tuple
 
-        avail_request_name = db.execute(
+        cur.execute(
             '''
             SELECT availability_request.avail_request_name
             FROM availability_request
-            WHERE availability_request.avail_request_id = ?
+            WHERE availability_request.avail_request_id = %s
             ''',
             (avail_request_id,)
-        ).fetchone()[0]
+        )
+
+        avail_request_name = cur.fetchone()[0]
 
 
-        org_name = db.execute(
+        cur.execute(
             '''
             SELECT organization.org_name 
             FROM organization 
             WHERE organization.org_id
             IN(
-                SELECT availability_request.org_id FROM availability_request WHERE availability_request.avail_request_id = ?
+                SELECT availability_request.org_id FROM availability_request 
+                WHERE availability_request.avail_request_id = %s
             )
             ''',
             (avail_request_id,)
-        ).fetchone()[0] 
+        )
 
-        answered = db.execute(
+        org_name = cur.fetchone()[0]
+
+        cur.execute(
             '''
             SELECT member_request.answered 
             FROM member_request 
-            WHERE member_request.avail_request_id = ?
-            AND member_request.member_id = ?
+            WHERE member_request.avail_request_id = %s
+            AND member_request.member_id = %s
             ''',
             (avail_request_id, session['member_id'])
-        ).fetchone()[0]
+        )
+
+        answered = cur.fetchone()[0]
 
         # build the dict with relavant information for the avail request
         request_data = {}
@@ -437,27 +471,32 @@ def get_member_responses(avail_request_id):
     the availability request page and the book page.'''
 
     db = get_db()
-    members = [] #TODO: should this not be a list? 
+    cur = db.cursor()
+    members = [] 
 
     # get timzone of the avail request to convert avail_slot times from UTC
-    timezone = db.execute(
+    cur.execute(
         '''
         SELECT availability_request.timezone
         FROM availability_request
-        WHERE avail_request_id = ?
+        WHERE avail_request_id = %s
         ''',
         (avail_request_id,)
-    ).fetchone()[0]
+    )
+
+    timezone = cur.fetchone()[0]
 
     # get each member and their answered status associated with the availability request
-    roster = db.execute(
+    cur.execute(
         '''
         SELECT member_request.member_id, member_request.answered
         FROM member_request 
-        WHERE member_request.avail_request_id = ?
+        WHERE member_request.avail_request_id = %s
         ''',
         (avail_request_id, )
-    ).fetchall()
+    )
+
+    roster = cur.fetchall()
 
     for r in roster:
         member = {}
@@ -465,29 +504,35 @@ def get_member_responses(avail_request_id):
         member['member_id'] = r[0]
 
         #get the member's username
-        username = db.execute(
+        cur.execute(
             '''
             SELECT member.username 
             FROM member
-            WHERE member_id = ?
+            WHERE member_id = %s
             ''',
             [r[0]] #member_id of user
-        ).fetchone()
+        )
+
+        username = cur.fetchone()
+
         member['username'] = username[0]
 
         # get any availability slots the member has created 
         # in assiciation with the availability_request
-        slots_from_db = db.execute(
+        cur.execute(
             '''
             SELECT 
             availability_slot.start_slot, 
             availability_slot.end_slot, 
             availability_slot.avail_slot_id
             FROM   availability_slot
-            WHERE  availability_slot.avail_request_id = ? AND availability_slot.member_id = ?
+            WHERE  availability_slot.avail_request_id = %s 
+            AND availability_slot.member_id = %s
             ''',
             (avail_request_id, r[0],)
-        ).fetchall()
+        )
+
+        slots_from_db = cur.fetchall()
 
         member['answered'] = r[1] # answered status associated with member_id 
 
@@ -514,13 +559,15 @@ def get_member_responses(avail_request_id):
 
 def get_org_id_from_avail_request(avail_request_id):
     db = get_db()
+    cur = db.cursor()
 
-    org_id = db.execute(
+    cur.execute(
         '''
         SELECT availability_request.org_id 
         FROM availability_request
-        WHERE availability_request.avail_request_id = ?
+        WHERE availability_request.avail_request_id = %s
         ''',
         (avail_request_id,)
-    ).fetchone()[0]
+    )
+    org_id = cur.fetchone()[0]
     return org_id

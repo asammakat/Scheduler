@@ -111,11 +111,13 @@ def validate_start_before_end(start_date, start_time, end_date, end_time):
 def check_org_membership(org_id):
     '''check if a member is in an organization'''
     db = get_db()
-    # ensure that member is in the organization 
-    if db.execute(
-        'SELECT * FROM roster WHERE org_id = ? AND member_id = ?',
+    cur = db.cursor()
+    cur.execute(
+        'SELECT * FROM roster WHERE org_id = %s AND member_id = %s',
         (org_id, session['member_id'],)
-    ).fetchone() is None:
+    )
+    result = cur.fetchone()
+    if result is None: #member not contained in roster
         return False
     else:
         return True
@@ -123,10 +125,14 @@ def check_org_membership(org_id):
 def check_avail_request_membership(avail_request_id):
     '''check if a user is associated with a partiular availability request'''
     db = get_db()
-    if db.execute(
-        'SELECT * FROM member_request WHERE avail_request_id = ? AND member_id = ?',
+    cur = db.cursor()
+    cur.execute(
+        'SELECT * FROM member_request WHERE avail_request_id = %s AND member_id = %s',
         (avail_request_id, session['member_id'],)
-    ).fetchone() is None:
+    )
+    result = cur.fetchone()
+
+    if result is None:
         return False
     else:
         return True

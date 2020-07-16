@@ -13,6 +13,7 @@ from schedulerApp.query_db import(
 def insert_booked_date(avail_request_id, start_date, start_time, end_date, end_time, timezone):
     '''insert a booked_date into the database'''
     db = get_db()
+    cur = db.cursor()
 
     # get datetime objects for the start and end
     start_book = return_datetime(start_date, start_time, timezone)
@@ -20,27 +21,29 @@ def insert_booked_date(avail_request_id, start_date, start_time, end_date, end_t
 
     # get timezone, org_id, and avail_request_name from avail_request
     # these fields are all carried over into the booked date
-    avail_request_info = db.execute(
+    cur.execute(
         '''
         SELECT 
         availability_request.timezone, 
         availability_request.org_id, 
         availability_request.avail_request_name
         FROM availability_request
-        WHERE availability_request.avail_request_id = ?
+        WHERE availability_request.avail_request_id = %s
         ''',
         (avail_request_id,)
-    ).fetchone()
+    )
+
+    avail_request_info = cur.fetchone()
 
     tz = avail_request_info[0]
     org_id = avail_request_info[1]
     name = avail_request_info[2]
 
     # insert the booked date into the database
-    db.execute(
+    cur.execute(
         '''INSERT INTO booked_date(
             booked_date_name, start_time, end_time, timezone, org_id, avail_request_id
-        ) VALUES (?,?,?,?,?,?)''',
+        ) VALUES (%s, %s, %s, %s, %s, %s)''',
         (name, start_book, end_book, tz, org_id, avail_request_id,)
     )
     db.commit()
@@ -53,24 +56,29 @@ def insert_booked_date(avail_request_id, start_date, start_time, end_date, end_t
 def insert_availability_slot(avail_request_id, start_date, start_time, end_date, end_time, timezone):
     '''insert an availability slot into the database'''
     db = get_db()
+    cur = db.cursor()
     # get datetime objects for start and end
     start_slot = return_datetime(start_date, start_time, timezone)
     end_slot = return_datetime(end_date, end_time, timezone)
 
     # insert new availability slot into the database
-    db.execute(
-        '''INSERT INTO availability_slot(
-            start_slot, end_slot, avail_request_id, member_id
-        ) VALUES (?,?,?,?)''',
+    cur.execute(
+        '''
+        INSERT INTO availability_slot(
+        start_slot, end_slot, avail_request_id, member_id
+        ) 
+        VALUES (%s, %s, %s, %s)
+        RETURNING avail_slot_id
+        ''',
         (start_slot, end_slot, avail_request_id, session['member_id'],)
     )
 
     # get avail_slot_id of the last insert
-    avail_slot_id = db.execute('SELECT last_insert_rowid()').fetchone()[0]
+    avail_slot_id = cur.fetchone()[0]
 
     # set the answered field in member_request to TRUE
-    db.execute(
-        ''' UPDATE member_request SET answered = TRUE WHERE member_id = ? AND avail_request_id = ? ''',
+    cur.execute(
+        ''' UPDATE member_request SET answered = TRUE WHERE member_id = %s AND avail_request_id = %s ''',
         (session['member_id'], avail_request_id,)
     )
     db.commit()
@@ -102,40 +110,43 @@ def insert_availability_request(
         ):
     '''insert an availability request into the database'''
     db = get_db()
+    cur = db.cursor()
     # get datetime objects for start and end
     start_request = return_datetime(start_date, start_time, tz)
     end_request = return_datetime(end_date, end_time, tz)
 
     # insert new avaiability request into the database
-    db.execute(
+    cur.execute(
         ''' INSERT INTO availability_request 
         (avail_request_name, start_request, end_request, 
-        timezone, org_id, completed) VALUES (?, ?, ?, ?, ?, ?)''',
+        timezone, org_id, completed) VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING avail_request_id''',
         (avail_request_name, start_request, end_request, tz, org_id, False)
     )
 
     # in order to add to member_request we need to avail_request_id of the 
     # availability request we just created
     member_id = session.get('member_id')
-    avail_request_id = db.execute(
-        'SELECT last_insert_rowid()'
-    ).fetchone()
+
+    avail_request_id = cur.fetchone()
 
     #insert everyone in the organization into member_request
-    members_in_org = db.execute(
-        'SELECT member_id FROM roster WHERE roster.org_id = ?',
+    cur.execute(
+        'SELECT member_id FROM roster WHERE roster.org_id = %s',
         (org_id,)
-    ).fetchall()
+    )
+
+    members_in_org = cur.fetchall()
 
     for member in members_in_org:
         org_member_id = member[0] #member_id of a member in the org
 
         # insert this member and the avail_request id of the newly created 
         # availability request into member_id
-        db.execute(
+        cur.execute(
             '''
             INSERT INTO member_request (member_id, avail_request_id, answered) 
-            VALUES (?,?,?)
+            VALUES (%s, %s, %s)
             ''',
             (org_member_id, avail_request_id[0], False)
         )
@@ -150,22 +161,24 @@ def check_if_complete(avail_request_id):
     ''' check if an availability request has been answered by all
     members of its associated organization. '''
     db = get_db()
-    answered_list = db.execute(
+    cur = db.cursor()
+    cur.execute(
         '''
-        SELECT answered FROM member_request WHERE member_request.avail_request_id = ?
+        SELECT answered FROM member_request WHERE member_request.avail_request_id = %s
         ''',
         (avail_request_id,)
-    ).fetchall()
+    )
+    answered_list = cur.fetchall()
 
     for answer in answered_list:
         if answer[0] == 0:
             return False #there is at least one member who has not responded to the request
 
     #all members have answered so availability request is complete, update the database
-    db.execute(
+    cur.execute(
         '''
         UPDATE availability_request SET completed = TRUE 
-        WHERE availability_request.avail_request_id = ?
+        WHERE availability_request.avail_request_id = %s
         ''',
         (avail_request_id,)
     )
@@ -176,10 +189,11 @@ def delete_availability_request(avail_request_id):
     '''delete an availability request from the database and update
     session'''
     db = get_db()
-    db.execute(
+    cur = db.cursor()
+    cur.execute(
         '''
         DELETE FROM availability_request
-        WHERE availability_request.avail_request_id = ?
+        WHERE availability_request.avail_request_id = %s
         ''',
         (avail_request_id,)
     )
@@ -193,10 +207,11 @@ def delete_availability_request(avail_request_id):
 def delete_booked_date(booked_date_id):
     '''Delete a booked date from the database and update session'''
     db = get_db()
-    db.execute(
+    cur = db.cursor()
+    cur.execute(
         '''
         DELETE FROM booked_date
-        WHERE booked_date.booked_date_id = ?
+        WHERE booked_date.booked_date_id = %s
         ''',
         (booked_date_id,)
     )
@@ -210,11 +225,12 @@ def delete_booked_date(booked_date_id):
 def delete_availability_slot(avail_slot_id):
     '''Delete an availability slot from the database'''
     db = get_db()
+    cur = db.cursor()
 
-    db.execute(
+    cur.execute(
         '''
         DELETE FROM availability_slot
-        WHERE availability_slot.avail_slot_id = ?
+        WHERE availability_slot.avail_slot_id = %s
         ''',
         (avail_slot_id,)
     )
@@ -225,28 +241,29 @@ def delete_availability_slot(avail_slot_id):
 def remove_from_org(member_id, org_id):
     '''Remove a member from an Organization'''
     db = get_db()
+    cur = db.cursor()
 
     # delete the member from the roster
-    db.execute(
+    cur.execute(
         '''
         DELETE FROM roster
-        WHERE member_id = ? 
-        AND org_id = ?
+        WHERE member_id = %s
+        AND org_id = %s
         ''',
         (member_id, org_id,)
     )
 
     # delete all availability slots made by the member for availability requests 
     # associated with the organization
-    db.execute(
+    cur.execute(
         '''
         DELETE FROM availability_slot
-        WHERE availability_slot.member_id = ?
+        WHERE availability_slot.member_id = %s
         AND availability_slot.avail_request_id 
         IN (
             SELECT availability_request.avail_request_id
             FROM availability_request
-            WHERE availability_request.org_id = ?
+            WHERE availability_request.org_id = %s
         )
         ''',
         (member_id, org_id,)
@@ -254,15 +271,15 @@ def remove_from_org(member_id, org_id):
 
     # delete all member request data for all availability requests associated with 
     # this member and this organization
-    db.execute(
+    cur.execute(
         '''
         DELETE FROM member_request
-        WHERE member_request.member_id = ?
+        WHERE member_request.member_id = %s
         AND member_request.avail_request_id
         IN (
             SELECT availability_request.avail_request_id
             FROM availability_request
-            WHERE availability_request.org_id = ?
+            WHERE availability_request.org_id = %s
         )
         ''',
         (member_id, org_id,)
@@ -278,18 +295,19 @@ def update_availability_requests_by_member(member_id):
     older than datetime.utcnow() and update the session data for all 
     availability requests associated with a member '''
     db = get_db()
+    cur = db.cursor()
 
     # delete old availability requests
-    db.execute(
+    cur.execute(
         '''
         DELETE FROM availability_request 
         WHERE availability_request.avail_request_id 
         IN (
             SELECT member_request.avail_request_id 
             FROM member_request
-            WHERE member_request.member_id = ?
+            WHERE member_request.member_id = %s
         )
-        AND availability_request.end_request < ?
+        AND availability_request.end_request < %s
         ''',
         (member_id, datetime.utcnow())
     )
@@ -307,18 +325,19 @@ def update_availability_requests_by_org(org_id):
     datetime.utcnow() and update availability request session data for 
     all availability requests associated with an organization'''
     db = get_db()
+    cur = db.cursor()
 
     # delete old availability requests
-    db.execute(
+    cur.execute(
         '''
         DELETE FROM availability_request 
         WHERE availability_request.avail_request_id 
         IN (
             SELECT availability_request.avail_request_id
             FROM availability_request
-            WHERE availability_request.org_id = ?
+            WHERE availability_request.org_id = %s
         )
-        AND availability_request.end_request < ?
+        AND availability_request.end_request < %s
         ''',
         (org_id, datetime.utcnow())
     )
@@ -335,26 +354,29 @@ def update_booked_dates_by_member(member_id):
     datetime.utcnow() and update the booked dates session data for 
     all booked dates associated with a member'''
     db = get_db()
+    cur = db.cursor()
 
-    debug_data = db.execute(
+    cur.execute(
         '''
         SELECT * 
         FROM booked_date
-        WHERE booked_date.end_time < ?
+        WHERE booked_date.end_time < %s
         ''',
         (datetime.utcnow(),)
-    ).fetchall()
+    )
+    
+    debug_date = cur.fetchall()
 
-    db.execute(
+    cur.execute(
         '''
         DELETE FROM booked_date
         WHERE booked_date.org_id
         IN (
             SELECT roster.org_id 
             FROM roster
-            WHERE roster.member_id = ? 
+            WHERE roster.member_id = %s
         )
-        AND booked_date.end_time < ?
+        AND booked_date.end_time < %s
         ''',
         (member_id, datetime.utcnow())
     )
@@ -372,13 +394,14 @@ def update_booked_dates_by_org(org_id):
     and update booked date session data for all booked dates that are
     associated with an organization'''
     db = get_db()
+    cur = db.cursor()
 
     # delete old booked dates
-    db.execute(
+    cur.execute(
         '''
         DELETE FROM booked_date
-        WHERE booked_date.org_id = ?
-        AND booked_date.end_time < ?
+        WHERE booked_date.org_id = %s
+        AND booked_date.end_time < %s
         ''',
         (org_id, datetime.utcnow())
     )
@@ -393,13 +416,14 @@ def update_booked_dates_by_org(org_id):
 def update_member_request():
     '''update member requests after a member joins an organization'''
     db = get_db()
+    cur = db.cursor()
 
     for avail_request in session['org_avail_requests']:
-        db.execute(
+        cur.execute(
             '''
             INSERT INTO member_request (member_id, avail_request_id, answered)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
             ''',
-            (session['member_id'], avail_request['avail_request_id'], 0)
+            (session['member_id'], avail_request['avail_request_id'], 'FALSE')
         )
     db.commit()

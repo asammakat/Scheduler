@@ -11,6 +11,7 @@ def test_update_availability_requests_by_member(app, auth, client):
 
     with app.app_context():
         db = get_db()
+        cur = db.cursor()
         auth.login()
         assert client.get('/').status_code == 200        
         auth.make_avail_request(
@@ -24,22 +25,26 @@ def test_update_availability_requests_by_member(app, auth, client):
         )
 
         # double check that insert was successful
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM availability_request 
             WHERE avail_request_id = 1
             '''
-        ).fetchone() is not None     
+        )
+        result = cur.fetchone()
+        assert result is not None     
 
         client.get('/')  
 
         # date was not old so should not be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM availability_request 
             WHERE avail_request_id = 1
             '''
-        ).fetchone() is not None     
+        )
+        result = cur.fetchone()
+        assert result is not None     
 
         #make an old avail request
         auth.make_avail_request(
@@ -54,36 +59,44 @@ def test_update_availability_requests_by_member(app, auth, client):
              
         # double check that inserts were successful
         # avail_request_id is 2 
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM availability_request 
             WHERE avail_request_id = 2
             '''
-        ).fetchone() is not None   
+        )
+        result = cur.fetchone()
+        assert result is not None   
 
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM member_request
             WHERE member_request.avail_request_id = 2
             '''
-        ).fetchone() is not None 
+        )
+        result = cur.fetchone()
+        assert result is not None 
 
         client.get('/')
 
         #Availability requests were old so these shold now be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM availability_request 
             WHERE avail_request_id = 2
             '''
-        ).fetchone() is None   
+        )
+        result = cur.fetchone()
+        assert result is None   
 
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM member_request
             WHERE member_request.avail_request_id = 2
             '''
-        ).fetchone() is None       
+        )
+        result = cur.fetchone()
+        assert result is None       
 
         #TODO: test that old avail request made by other user is not deleted
                   
@@ -93,6 +106,7 @@ def test_update_booked_dates_by_member(app, auth, client):
 
     with app.app_context():
         db = get_db()
+        cur = db.cursor()
         auth.login()
         auth.make_avail_request()
 
@@ -105,22 +119,26 @@ def test_update_booked_dates_by_member(app, auth, client):
         )
 
         # check that booked date was added
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM booked_date
             WHERE booked_date_id = 1
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
         client.get('/')
 
         # booked date was not old so should not be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM booked_date
             WHERE booked_date_id = 1
             '''
-        ).fetchone() is not None        
+        )
+        result = cur.fetchone()
+        assert result is not None        
 
         # book an old date
         auth.book(
@@ -131,22 +149,26 @@ def test_update_booked_dates_by_member(app, auth, client):
         )
 
         # home page has not been visited so this should not be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM booked_date
             WHERE booked_date_id = 2
             '''
-        ).fetchone() is not None       
+        )
+        result = cur.fetchone()
+        assert result is not None       
 
         client.get('/')
 
         # booked date was old so it should be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM booked_date
             WHERE booked_date_id = 2
             '''
-        ).fetchone() is None    
+        )
+        result = cur.fetchone()
+        assert result is None    
 
         #TODO: test that old booked date made by other user is not deleted           
 
@@ -157,6 +179,7 @@ def test_update_availability_requests_by_org(app, auth, client):
 
     with app.app_context():
         db = get_db()
+        cur = db.cursor()
         auth.login()
         assert client.get('/1/org_page').status_code == 200        
         auth.make_avail_request(
@@ -172,19 +195,23 @@ def test_update_availability_requests_by_org(app, auth, client):
         client.get('/1/org_page')
 
         # date was not old so should not be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM availability_request 
             WHERE avail_request_id = 1
             '''
-        ).fetchone() is not None   
+        )
+        result = cur.fetchone() 
+        assert result is not None   
 
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM member_request
             WHERE member_request.avail_request_id = 1
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone() 
+        assert result is not None
     
         #make an old avail request
         auth.make_avail_request(
@@ -198,38 +225,45 @@ def test_update_availability_requests_by_org(app, auth, client):
         )
 
         #Org page has not been visited so these should not be deleted yet
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM availability_request 
             WHERE avail_request_id = 2
             '''
-        ).fetchone() is not None   
+        )
+        result = cur.fetchone() 
+        assert result is not None   
 
-
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM member_request
             WHERE member_request.avail_request_id = 2
             '''
-        ).fetchone() is not None        
+        )
+        result = cur.fetchone() 
+        assert result is not None        
 
         client.get('/1/org_page')
     
         #Availability requests were old so these shold now be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM availability_request 
             WHERE avail_request_id = 2
             '''
-        ).fetchone() is None   
+        )
+        result = cur.fetchone()
+        assert result is None   
 
 
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM member_request
             WHERE member_request.avail_request_id = 2
             '''
-        ).fetchone() is None  
+        )
+        result = cur.fetchone()
+        assert result is None  
 
     #TODO:  Test that old avail request from other org is not deleted    
 
@@ -240,6 +274,7 @@ def test_update_booked_dates_by_org(app, auth, client):
 
     with app.app_context():
         db = get_db()
+        cur = db.cursor()
         auth.login()
         auth.make_avail_request()
 
@@ -252,22 +287,29 @@ def test_update_booked_dates_by_org(app, auth, client):
         )
 
         # check that booked date was added
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM booked_date
             WHERE booked_date_id = 1
             '''
-        ).fetchone() is not None
+        )
+        
+        result = cur.fetchone() 
+        assert result is not None
 
         client.get('/1/org_page')
 
         # booked date was not old so should not be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM booked_date
             WHERE booked_date_id = 1
             '''
-        ).fetchone() is not None        
+        )
+        
+        result = cur.fetchone() 
+        
+        assert result is not None        
 
         # book an old date
         auth.book(
@@ -278,21 +320,25 @@ def test_update_booked_dates_by_org(app, auth, client):
         )
 
         # home page has not been visited so this should not be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM booked_date
             WHERE booked_date_id = 2
             '''
-        ).fetchone() is not None       
+        )
+        result = cur.fetchone() 
+        assert result is not None       
 
         client.get('/1/org_page')
 
         # booked date was old so it should be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM booked_date
             WHERE booked_date_id = 2
             '''
-        ).fetchone() is None    
+        )
+        result = cur.fetchone() 
+        assert result is None    
 
         #TODO: test that old booked date made by other user is not deleted

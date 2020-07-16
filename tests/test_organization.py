@@ -32,9 +32,13 @@ def test_org_page(auth, client, app):
     auth.make_avail_request()
 
     with app.app_context():
-        assert get_db().execute(
+        db = get_db()
+        cur = db.cursor()
+        cur.execute(
             "SELECT * FROM availability_request WHERE avail_request_name ='testAR'", 
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
 @pytest.mark.parametrize(('avail_request_name', 'start_date', 'start_time', 'end_date', 'end_time', 'tz', 'message'),(
     ('', '1/1/2030', '1:30a', '1/1/2030', '2:00p', 'UTC', b"A name is required"),
@@ -77,30 +81,39 @@ def test_avail_request(auth, client, app):
 
     with app.app_context():
         db = get_db()
-        assert db.execute(
+        cur = db.cursor()
+        cur.execute(
             "SELECT * FROM availability_slot WHERE member_id = 1", 
-        ).fetchone() is not None  
+        )
+        result = cur.fetchone()
+        assert result is not None  
 
-        assert db.execute(
-            "SELECT * FROM member_request WHERE member_id = 1 AND answered = 1",
-        ).fetchone() is not None
+        cur.execute(
+            "SELECT * FROM member_request WHERE member_id = 1 AND answered = TRUE",
+        )
+        result = cur.fetchone()
+        assert result is not None
 
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM availability_request WHERE completed = TRUE
             '''
-        ).fetchone() is None
+        )
+        result = cur.fetchone()
+        assert result is None
 
         auth.add_to_roster('testOrg1', 'test')
         auth.make_avail_request(org_id=2)
         response = auth.add_avail_slot(avail_request_id=2)
         assert b"Ready to book" in response.data
 
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * FROM availability_request WHERE completed = TRUE
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
         
 @pytest.mark.parametrize(('start_date', 'start_time', 'end_date', 'end_time', 'message'),(
     ('', '1:30a', '1/1/2030', '2:00p', b"There was a problem with your start date input"),
@@ -143,10 +156,12 @@ def test_book(auth, client, app):
 
     with app.app_context():
         db = get_db()
-        assert db.execute(
+        cur = db.cursor()
+        cur.execute(
             '''SELECT * FROM booked_date WHERE booked_date_name = 'testAR' ''',
-        ).fetchone() is not None
-
+        )
+        result = cur.fetchone()
+        assert result is not None
 
 @pytest.mark.parametrize(('start_date', 'start_time', 'end_date', 'end_time', 'message'),(
     ('', '1:30a', '1/1/2030', '2:00p', b"There was a problem with your start date input"),
@@ -172,25 +187,30 @@ def test_delete_availability_request(auth, client, app):
     assert client.get('/1/avail_request').status_code == 200
 
     with app.app_context():
-        db = get_db()        
-        assert db.execute(
+        db = get_db()
+        cur = db.cursor()     
+        cur.execute(
             '''
             SELECT * 
             FROM availability_request 
             WHERE availability_request.avail_request_id = 1
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
         response = client.get('/1/delete_avail_request')
         assert response.headers['location'] == 'http://localhost/1/org_page'     
 
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM availability_request 
             WHERE availability_request.avail_request_id = 1
             '''
-        ).fetchone() is None
+        )
+        result = cur.fetchone()
+        assert result is None
     
 def test_delete_avail_slot(auth, client, app):
     auth.login()
@@ -200,13 +220,16 @@ def test_delete_avail_slot(auth, client, app):
 
     with app.app_context():
         db = get_db()
-        assert db.execute(
+        cur = db.cursor()
+        cur.execute(
             '''
             SELECT * 
             FROM availability_slot
             WHERE availability_slot.avail_slot_id = 1
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
         request = client.get('/1/delete_avail_slot')
 
@@ -214,13 +237,15 @@ def test_delete_avail_slot(auth, client, app):
         assert request.headers['location'] == 'http://localhost/1/avail_request'
 
         # avail slot should not be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM availability_slot
             WHERE availability_slot.avail_slot_id = 1
             '''
-        ).fetchone() is None        
+        )
+        result = cur.fetchone()
+        assert result is None        
 
 def test_delete_booked_date(auth, client, app):
     auth.login()
@@ -230,24 +255,29 @@ def test_delete_booked_date(auth, client, app):
 
     with app.app_context():
         db = get_db()
-        assert db.execute(
+        cur = db.cursor()
+        cur.execute(
             '''
             SELECT * 
             FROM booked_date
             WHERE booked_date.booked_date_id = 1
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
         request = client.get('/1/delete_booked_date')
         assert request.headers['location'] == 'http://localhost/1/org_page'
 
-        assert db.execute(
+        cur.execute(
             '''
             SELECT *
             FROM booked_date 
             WHERE booked_date.booked_date_id = 1
             '''
-        ).fetchone() is None
+        )
+        result = cur.fetchone()
+        assert result is None
     
 def test_leave_org(auth, client, app):
     auth.login()
@@ -257,32 +287,39 @@ def test_leave_org(auth, client, app):
 
     with app.app_context():
         db = get_db()
+        cur = db.cursor()
 
         # make sure entries we expect are in the database are there
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM availability_slot
             WHERE availability_slot.avail_slot_id = 1
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM roster
             WHERE roster.org_id = 1
             AND roster.member_id = 1
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM member_request
             WHERE member_request.member_id = 1
             '''
-        ).fetchone() is not None        
+        )
+        result = cur.fetchone()
+        assert result is not None        
 
         # add an availability_slot that should not be deleted
         client.get('/logout')
@@ -290,73 +327,87 @@ def test_leave_org(auth, client, app):
         auth.add_avail_slot()
 
         # make sure that new avail slot was added
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM availability_slot
             WHERE availability_slot.avail_slot_id = 2
             '''
-        ).fetchone() is not None        
+        )
+        result = cur.fetchone()
+        assert result is not None        
 
         request = client.get('/1/1/leave_org')
         assert request.headers['location'] == 'http://localhost/'
 
         # this member should be deleted from the roster
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM roster
             WHERE roster.org_id = 1
             AND roster.member_id = 1
             '''
-        ).fetchone() is None
+        )
+        result = cur.fetchone()
+        assert result is None
 
         # other member in the org should not be deleted from roster
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM roster
             WHERE roster.org_id = 1
             AND roster.member_id = 2
             '''
-        ).fetchone is not None
+        )
+        result = cur.fetchone
+        assert result is not None
 
         # availability slot associated with organization should also be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM availability_slot
             WHERE availability_slot.avail_slot_id = 1
             '''
-        ).fetchone() is None
+        )
+        result = cur.fetchone()
+        assert result is None
 
         # make sure member request associated with the member 
         # and the availability request has been deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM member_request
             WHERE member_request.member_id = 1
             '''
-        ).fetchone() is None
+        )
+        result = cur.fetchone()
+        assert result is None
 
         # this availability slot should not be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM availability_slot
             WHERE availability_slot.avail_slot_id = 2
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
         # this member_request should not be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM member_request
             WHERE member_request.member_id = 2
             '''
-        ). fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
     
 def test_drop_from_org(auth, client, app):
     auth.login()
@@ -366,32 +417,39 @@ def test_drop_from_org(auth, client, app):
 
     with app.app_context():
         db = get_db()
+        cur = db.cursor()
 
         # make sure entries we expect are in the database are there
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM availability_slot
             WHERE availability_slot.avail_slot_id = 1
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM roster
             WHERE roster.org_id = 1
             AND roster.member_id = 1
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM member_request
             WHERE member_request.member_id = 1
             '''
-        ).fetchone() is not None        
+        )
+        result = cur.fetchone()
+        assert result is not None        
 
         # add an availability_slot that should not be deleted
         client.get('/logout')
@@ -399,80 +457,96 @@ def test_drop_from_org(auth, client, app):
         auth.add_avail_slot()
 
         # make sure that new avail slot was added
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM availability_slot
             WHERE availability_slot.avail_slot_id = 2
             '''
-        ).fetchone() is not None        
+        )
+        result = cur.fetchone()
+        assert result is not None        
 
         request = client.get('/3/1/drop_from_org')
         assert request.headers['location'] == 'http://localhost/1/org_page'
 
         # this member should be deleted from the roster
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM roster
             WHERE roster.org_id = 1
             AND roster.member_id = 3
             '''
-        ).fetchone() is None
+        )
+        result = cur.fetchone()
+        assert result is None
 
         # other members in the org should not be deleted from roster
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM roster
             WHERE roster.org_id = 1
             AND roster.member_id = 2
             '''
-        ).fetchone is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
         # other members in the org should not be deleted from roster
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM roster
             WHERE roster.org_id = 1
             AND roster.member_id = 1
             '''
-        ).fetchone is not None        
+        )
+        result = cur.fetchone 
+        assert result is not None        
 
         # availability slot associated with organization should not be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM availability_slot
             WHERE availability_slot.avail_slot_id = 1
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
         # make sure member request associated with the member 
         # and the availability request has been deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM member_request
             WHERE member_request.member_id = 3
             '''
-        ).fetchone() is None
+        )
+        result = cur.fetchone()
+        assert result is None
 
         # this availability slot should not be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM availability_slot
             WHERE availability_slot.avail_slot_id = 2
             '''
-        ).fetchone() is not None
+        )
+        result = cur.fetchone()
+        assert result is not None
 
         # this member_request should not be deleted
-        assert db.execute(
+        cur.execute(
             '''
             SELECT * 
             FROM member_request
             WHERE member_request.member_id = 1
             '''
-        ). fetchone() is not None    
+        )
+        result = cur.fetchone()
+        assert result is not None    
