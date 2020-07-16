@@ -27,20 +27,24 @@ def register():
         username = request.form['username']
         password = request.form['password']
         db = get_db()
+        cur = db.cursor()
         error = None
 
         if not username:
             error = 'Username is required.'
         elif not password:
             error = 'Password is required.'
-        elif db.execute(
-            'SELECT member_id FROM member WHERE username = ?', (username,)
-        ).fetchone() is not None:
-            error = 'User {} is already registered.'.format(username)
+        else:
+            cur.execute(
+                'SELECT member_id FROM member WHERE username = %s', (username,)
+            )
+            result = cur.fetchone()
+            if result is not None:
+                error = 'User {} is already registered.'.format(username)
 
         if error is None:
-            db.execute(
-                'INSERT INTO member (username, password) VALUES (?, ?)',
+            cur.execute(
+                'INSERT INTO member (username, password) VALUES (%s, %s)',
                 (username, generate_password_hash(password))
             )
             db.commit()
@@ -57,33 +61,39 @@ def register_org():
         org_name = request.form['org_name']
         password = request.form['password']
         db = get_db()
+        cur = db.cursor()
         error = None
 
         if not org_name:
             error = 'Organization name is required.'
         elif not password:
             error = 'Password is required.'
-        elif db.execute(
-            'SELECT org_id FROM organization WHERE org_name = ?', (org_name,)
-        ).fetchone() is not None:
-            error = '{} is already registered.'.format(org_name)
+        else:
+            cur.execute(
+                'SELECT org_id FROM organization WHERE org_name = %s',
+                (org_name,)
+            )
+            result = cur.fetchone()
+            if result is not None:
+                error = '{} is already registered.'.format(org_name)
 
         if error is None:
-            db.execute(
-                'INSERT INTO organization (org_name, password) VALUES (?, ?)',
+            cur.execute(
+                'INSERT INTO organization (org_name, password) VALUES (%s, %s)',
                 (org_name, generate_password_hash(password))
             )
             db.commit()
 
             #automatically add current user to roster
-            org_id = db.execute(
-                'SELECT org_id FROM organization WHERE org_name = ?', (org_name,)
-            ).fetchone()[0]
+            cur.execute(
+                'SELECT org_id FROM organization WHERE org_name = %s', (org_name,)
+            )
+            org_id = cur.fetchone()[0]
 
             member_id = session['member_id']
 
-            db.execute(
-                'INSERT INTO roster (org_id, member_id) VALUES (?, ?)',
+            cur.execute(
+                'INSERT INTO roster (org_id, member_id) VALUES (%s, %s)',
                 (org_id, member_id,)
             )
             db.commit()
@@ -101,10 +111,13 @@ def login():
         username = request.form['username']
         password = request.form['password']
         db = get_db()
+        cur = db.cursor()
         error = None
-        member = db.execute(
-            'SELECT * FROM member WHERE username = ?', (username,)
-        ).fetchone()
+        cur.execute(
+            'SELECT * FROM member WHERE username = %s', (username,)
+        )
+
+        member = cur.fetchone()
 
         member_password = None
 
@@ -132,10 +145,12 @@ def add_to_roster():
         org_name = request.form['org_name']
         password = request.form['password']
         db = get_db()
+        cur = db.cursor()
         error = None
-        organization = db.execute(
-            'SELECT * FROM organization WHERE org_name = ?', (org_name,)
-        ).fetchone()
+        cur.execute(
+            'SELECT * FROM organization WHERE org_name = %s', (org_name,)
+        )
+        organization = cur.fetchone()
 
         member_id = session['member_id']
         org_pword = None
@@ -147,17 +162,20 @@ def add_to_roster():
             org_pword = organization[2]
             org_id = organization[0]
 
+        cur.execute(
+            'SELECT * FROM roster WHERE org_id = %s AND member_id = %s',
+            (org_id, session['member_id'])
+        )
+        org_check = cur.fetchone()           
+
         if org_pword is not None and not check_password_hash(org_pword, password):
             error = 'Incorrect password.'
-        elif db.execute(
-            'SELECT * FROM roster WHERE org_id = ? AND member_id = ?',
-            (org_id, session['member_id'])
-        ).fetchone() is not None:
+        elif org_check is not None:
             error = 'You are already in the organization.'
 
         if error is None:
-            db.execute(
-                'INSERT INTO roster (org_id, member_id) VALUES (?, ?)',
+            cur.execute(
+                'INSERT INTO roster (org_id, member_id) VALUES (%s, %s)',
                 (org_id, member_id,)
             )
             db.commit()
@@ -184,9 +202,13 @@ def load_logged_in_user():
     if member_id is None:
         g.member = None
     else:
-        g.member = get_db().execute(
-            'SELECT * FROM member WHERE member_id = ?', (member_id,)
-        ).fetchone()
+        db = get_db()
+        cur = db.cursor()
+        cur.execute(
+            'SELECT * FROM member WHERE member_id = %s', (member_id,)
+        )
+
+        g.member = cur.fetchone()
     
 @bp.route('/logout')
 def logout():

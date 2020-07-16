@@ -1,4 +1,5 @@
-import sqlite3
+import psycopg2
+import psycopg2.extras
 
 import click 
 from flask import current_app, g
@@ -7,12 +8,13 @@ from flask.cli import with_appcontext
 
 def get_db():
     if 'db' not in g:
-        g.db = sqlite3.connect(
-            current_app.config['DATABASE'],
-            detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES
+        g.db = psycopg2.connect(
+            dbname=current_app.config['DATABASE_NAME'],
+            user="postgres12",
+            host="localhost",
+            port="5432" 
         )
     
-    g.db.execute("PRAGMA foreign_keys=ON") #foreign key support is turned off by default
     return g.db
 
 def close_db(e=None):
@@ -23,10 +25,11 @@ def close_db(e=None):
 
 def init_db():
     db = get_db()
+    cur = db.cursor()
 
     with current_app.open_resource('schema.sql') as f:
-        db.executescript(f.read().decode('utf8'))
-
+        cur.execute(f.read().decode('utf8'))
+        db.commit()
 
 @click.command('init-db')
 @with_appcontext
